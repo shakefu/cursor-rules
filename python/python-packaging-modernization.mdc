@@ -1,0 +1,85 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Python Packaging Modernization
+
+## Converting setuptools to pyproject.toml
+
+When encountering legacy `setup.py` or `setup.cfg` files, convert them to modern `pyproject.toml` format following these guidelines:
+
+### Build System Configuration
+
+- Use `hatchling` as the build backend for compatibility with uv:
+```toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+```
+
+### Project Section Ordering
+
+Follow the same field ordering as the root [pyproject.toml](mdc:pyproject.toml):
+
+```toml
+[project]
+name = "package-name"
+version = "1.0.0"
+description = "Package description"
+readme = "README.md"
+license = "MIT"
+authors = [
+    {name = "Jacob Alheid", email = "shakefu@gmail.com"},
+]
+requires-python = ">=3.9"
+dependencies = [
+    "dependency-name",
+]
+```
+
+### Section Ordering
+
+Organize sections in this order:
+1. `[project]` - All project metadata
+2. `[project.entry-points.*]` - Entry points configuration
+3. `[dependency-groups]` - Optional dependency groups (if needed)
+4. `[build-system]` - Build system configuration
+5. `[tool.*]` - Tool-specific configurations
+
+### Entry Points Migration
+
+Convert setuptools entry points format:
+```python
+# OLD setup.py
+entry_points={
+    "console_scripts": ["cmd = module:function"],
+    "group_name": ["key = module"],
+}
+```
+
+To modern toml format:
+```toml
+[project.scripts]
+cmd = "module:function"
+
+[project.entry-points.group_name]
+key = "module"
+```
+
+### Dependency Declaration
+
+- Always declare dependencies explicitly in the `dependencies` array
+- Use appropriate version constraints
+- For the pyconfig project, ensure `pyconfig` is listed as a dependency for test packages
+
+### Author Information
+
+- Always use the same author information as the root project
+- Match the exact format from [pyproject.toml](mdc:pyproject.toml)
+
+### File Cleanup
+
+- After creating `pyproject.toml`, delete the old `setup.py` file
+- Remove any `setup.cfg` files if present
+- Ensure no legacy configuration files remain
