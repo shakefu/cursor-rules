@@ -75,7 +75,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Build docs
-          uv run script/docs
+          script/docs
 
   checks:
     name: Checks
