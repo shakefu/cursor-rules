@@ -1,52 +1,81 @@
-<!-- markdownlint-disable MD013 -->
-
 # cursor-rules
 
-_A veritable compendium of coding commandments for the modern Cursor IDE user – because no one expects the Spanish Inquisition to do their code review._
+A curated collection of development guidelines and best practices for modern
+software development with the Cursor IDE.
+
+_Because sometimes even the best developers need a gentle reminder that yes,
+you do need to write tests._
 
 ## What is this?
 
-`cursor-rules` is a living collection of opinionated (and occasionally cheeky) guidelines, lint-able lore, and workflow wisdom for day-to-day software development inside the [Cursor](https://cursor.sh) IDE. Think of it as an encyclopedia of best practices that you can copy-and-paste (or, better yet, programmatically ingest) into your projects, CI, or AI assistants so that your codebase remains _mostly harmless_.
+`cursor-rules` is a comprehensive set of coding standards, workflow patterns,
+and development guidelines designed to improve code quality and team
+collaboration. These rules can be integrated into your projects, CI/CD
+pipelines, and development tools to maintain consistency across your codebase.
 
-> "This README was forged in the fires of PEP 8, cooled in the lake of Ruff, and polished by the Knights who say _ni!_" – **Someone probably**
+The guidelines are stored as machine-readable Markdown files, making them easy
+to version, share, and automate. Think of it as a very polite robot that
+reminds you to format your code properly.
 
-### Why keep rules in a repo?
+### Why keep rules in a repository?
 
-1. **Single source of truth** – avoid the _Dead Parrot_ problem where guidelines live in a forgotten wiki page and quietly expire.
-2. **Version control** – rules evolve; commits make that evolution explicit.
-3. **Reuse & automation** – having rules in machine-readable Markdown allows linters, bots, and AI copilots (hello there!) to enforce or surface them.
+1. **Centralized standards** – maintain a single source of truth for your
+   development practices (because we all know what happens when standards live
+   in Slack threads)
+2. **Version control** – track changes to your guidelines over time with full
+   history
+3. **Automation ready** – integrate with linters, CI systems, and development
+   tools
+4. **Team alignment** – ensure everyone follows the same standards, reducing
+   the ancient art of "but it works on my machine"
 
-## Directory tour (bring your own coconut halves)
+## Directory structure
 
-| Path          | What you will find                                                                     | Notable quotes                                         |
-| ------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `python/`     | A gaggle of `*.mdc` files that cover Python development, testing, packaging, and more. | "It's only a flesh wound!" (about ignoring type hints) |
-| `script/docs` | A tiny helper that politely reminds you there is _no_ generated documentation... yet.  | "We're on a mission from Godot."                       |
-| `.github/`    | Workflows, issue templates, and other GitHub accoutrements.                            | "And now for something completely CI."                 |
-
-_(If you were looking for the Holy Grail, try `find . -name shrubbery` – we don't have one either.)_
+| Path          | Contents                                                  |
+| ------------- | --------------------------------------------------------- |
+| `python/`     | Python-specific guidelines covering development, testing, |
+|               | and packaging                                             |
+| `script/docs` | Documentation utilities and helpers (spoiler: there's not |
+|               | much here yet)                                            |
+| `.github/`    | GitHub workflows, issue templates, and repository         |
+|               | configuration                                             |
 
 ## Quick start
 
 ```bash
-# Clone the repository (or swallow it like an African swallow)
-$ git clone https://github.com/your-org/cursor-rules.git
+# Clone the repository
+git clone https://github.com/your-org/cursor-rules.git
 
-# Read a rule file (mind the whitespace)
-$ bat python/python-development.mdc
+# Browse the guidelines (exciting stuff, really)
+ls python/
+cat python/python-development.mdc
 ```
 
-Need to integrate these rules into your own project? Copy the relevant `*.mdc` files, link to them from your docs, or turn them into linting rules for your favourite tooling. Contributions are welcome – but remember to sign the **Commitment to Silly Walks** (a.k.a. follow Conventional Commits).
+To integrate these rules into your project:
+
+1. Copy relevant `.mdc` files to your project documentation
+2. Reference them in your project's contributing guidelines
+3. Configure your linting tools to enforce the standards
+4. Add them to your CI/CD pipeline for automated checking
+5. Watch as your code mysteriously becomes more readable
 
 ## Contributing
 
-1. Fork → clone → branch (no lobsters).
-2. Add or update a rule file.
-3. Run `pre-commit run --all-files` to appease the style gods.
-4. Create a pull request and wait for _The Bridgekeeper_ (CI) to ask three questions of you.
+We welcome contributions to improve and expand these guidelines:
 
-If you think a rule is too strict, open an issue and bring your finest arguments (or a shrubbery). We listen.
+1. **Fork and clone** the repository
+2. **Create a feature branch** for your changes
+3. **Add or update** rule files following our formatting standards
+4. **Test your changes** by running `pre-commit run --all-files` (yes, we eat
+   our own dog food)
+5. **Submit a pull request** with a clear description of your changes
+
+For significant changes, please open an issue first to discuss the proposed
+modifications. We promise to be more diplomatic than your average code
+reviewer.
 
 ## License
 
-Released under the MIT License. Feel free to reuse, remix, and quote at parties – just don't mention the war.
+This project is licensed under the MIT License. You're free to use, modify,
+and distribute these guidelines in your own projects. Just remember us when
+you're famous.
