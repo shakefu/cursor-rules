@@ -1,0 +1,94 @@
+---
+description: Go module management and project structure best practices
+globs:
+alwaysApply: false
+---
+# Go Module Management
+
+## Modern Go Module Structure
+
+All Go projects should use Go modules with a properly structured `go.mod` file following these guidelines:
+
+### Module Declaration
+
+- Use descriptive module paths that reflect the repository location:
+```go
+module github.com/username/repository-name
+```
+
+### Go Version Declaration
+
+- Always specify the minimum Go version required:
+```go
+go 1.21
+```
+
+### Dependency Management
+
+- Use `go mod tidy` to manage dependencies automatically
+- Pin major versions appropriately using semantic import versioning
+- Use `replace` directives only when necessary for local development
+
+### Module Structure Best Practices
+
+Follow standard Go project layout:
+
+```
+project/
+├── go.mod
+├── go.sum
+├── README.md
+├── main.go (for command-line tools)
+├── pkg/           (for library packages)
+├── internal/      (for private packages)
+├── cmd/           (for multiple commands)
+└── testdata/      (for test fixtures)
+```
+
+### Dependency Versioning
+
+- Use semantic versioning for your modules
+- Follow Go's compatibility promise
+- Use `go get` to add dependencies
+- Use `go mod tidy` to clean up unused dependencies
+- Review `go.sum` changes in version control
+
+### Module Commands
+
+Common module management commands:
+```bash
+go mod init <module-path>    # Initialize new module
+go mod tidy                  # Add missing and remove unused modules
+go mod download              # Download modules to local cache
+go mod verify                # Verify dependencies
+go get <package>             # Add or update dependency
+go get <package>@version     # Get specific version
+go list -m all               # List all modules
+```
+
+### Best Practices
+
+- Keep `go.mod` and `go.sum` in version control
+- Use meaningful module paths that reflect ownership
+- Avoid `replace` directives in production code
+- Use internal packages for code that shouldn't be imported externally
+- Follow semantic versioning for your own modules
+- Use `go mod vendor` only when necessary
+
+### Version Control Integration
+
+- Always commit both `go.mod` and `go.sum` files
+- Review dependency changes in pull requests
+- Use `go mod tidy` before committing to ensure clean dependencies
+- Consider using dependency scanning tools for security
+
+### Module Publishing
+
+- Tag releases with semantic version tags (e.g., v1.0.0)
+- Use `go mod` commands to ensure compatibility
+- Follow Go's module versioning guidelines
+- Consider backward compatibility when making changes
+description:
+globs:
+alwaysApply: false
+---

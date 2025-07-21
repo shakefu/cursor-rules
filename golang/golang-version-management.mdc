@@ -1,0 +1,74 @@
+---
+description: Version checking and dependency management best practices for Go
+globs:
+alwaysApply: false
+---
+
+# Version Management Best Practices
+
+## General Principles
+
+- Always check for the latest versions of dependencies and GitHub Actions
+- Never guess or use potentially outdated versions
+- Always verify versions from official repositories
+- Keep GitHub Actions and their versions up to date
+- Use Go modules for dependency management
+
+## Version Checking Commands
+
+Use the following commands to find latest versions:
+
+```bash
+# For GitHub-hosted projects
+gh release list --repo <owner>/<repo> --limit 1
+
+# For GitHub Actions specifically
+gh api repos/<owner>/<repo>/releases/latest
+
+# For GitHub Actions versions
+gh api repos/<owner>/<repo>/tags
+
+# For Go modules, check available versions
+go list -m -versions <module>
+
+# Check what version is currently used
+go list -m <module>
+```
+
+## Go Module Dependency Management
+
+- Use `go mod tidy` to manage Go module dependencies
+- Keep `go.mod` and `go.sum` up to date with version constraints
+- Regularly update dependencies to latest compatible versions:
+  ```bash
+  go get -u ./...  # Update all dependencies
+  go get -u <module>@latest  # Update specific module
+  ```
+- Use dependency scanning tools when available
+- Document version requirements clearly in documentation
+
+## Go Version Management
+
+- Use Go version managers like `g` or `gvm` for local development
+- Specify minimum Go version in `go.mod` file
+- Keep Go version up to date with latest stable releases
+- Test against multiple Go versions in CI when supporting older versions
+
+## Security Considerations
+
+- Use commit hashes for GitHub Actions instead of version tags
+- Include version tags as comments for reference
+- Regularly audit dependencies for security vulnerabilities using `go mod tidy` and security scanners
+- Keep all tooling and dependencies updated
+- Review `go.sum` changes for unexpected modifications
+
+## Module Versioning
+
+- Follow semantic versioning for your own Go modules
+- Use version tags (v1.0.0, v2.0.0, etc.) for releases
+- Consider Go's compatibility promise when versioning
+- Use major version suffixes for breaking changes (v2, v3, etc.)
+description:
+globs:
+alwaysApply: false
+---

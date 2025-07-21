@@ -1,0 +1,71 @@
+---
+description: Testing guidelines and best practices using Ginkgo and Gomega
+globs: **/*_test.go,*_test.go
+alwaysApply: false
+---
+
+# Testing Guidelines
+
+## What to test
+
+- Start with creating behavior tests using Ginkgo's BDD style, testing intended behavior of functions, types, and packages
+- Try to minimally mock so we ensure that we aren't creating passthrough tests of no value
+- Once we have good behavior tests, then continue to create more tests for common edge cases
+
+## Writing and refactoring tests
+
+- ALWAYS check linting after modifying a file before going on to the next file
+- ALWAYS run tests for the specific package after modifying to ensure tests pass using `go test`
+- IF you are in the middle of modifying multiple files or refactoring, it may be okay that tests do not pass
+
+## Test Structure & Organization
+
+- Write comprehensive tests for all new functionality using Ginkgo and Gomega
+- Use Ginkgo's `Describe`, `Context`, and `It` blocks appropriately
+- Use Gomega matchers for assertions
+- Aim for high test coverage
+- Test files should be named `*_test.go` and placed alongside source code
+- Use descriptive test descriptions that explain what is being tested in plain language
+- Tests run through standard `go test` command
+
+## Test Best Practices
+
+- Use `go test` for all testing (Ginkgo integrates seamlessly)
+- Use Ginkgo's `BeforeEach` and `AfterEach` for test setup and cleanup
+- Use Ginkgo's `BeforeSuite` and `AfterSuite` for expensive setup
+- Use Gomega's expressive matchers instead of basic equality checks
+- Test both success and failure cases using Ginkgo's BDD style
+- Include edge case testing in separate `Context` blocks
+- Use `Expect(err).ToNot(HaveOccurred())` instead of checking `err != nil`
+- Use appropriate Gomega matchers like `BeNil()`, `BeTrue()`, `BeFalse()`, etc.
+
+## Ginkgo & Gomega Specifics
+
+- Structure tests using Ginkgo's BDD format:
+  ```go
+  var _ = Describe("ComponentName", func() {
+      Context("when condition", func() {
+          It("should behave correctly", func() {
+              Expect(result).To(Equal(expected))
+          })
+      })
+  })
+  ```
+- Use Gomega's rich set of matchers for clear, readable assertions
+- Use `BeforeEach` for test setup and `AfterEach` for cleanup
+- Group related tests in `Context` blocks with descriptive names
+- Use `By()` steps for complex test scenarios
+- Use table-driven tests with Ginkgo's `DescribeTable` when appropriate
+
+## Running Tests
+
+- Use `go test ./...` to run all tests in the project
+- Use `go test -v ./...` for verbose output
+- Use `go test -run TestName` to run specific tests
+- Ginkgo tests integrate with standard Go testing tools and CI systems
+- Use `go test -race` to detect race conditions
+- Use `go test -cover` for coverage reports
+description:
+globs:
+alwaysApply: false
+---

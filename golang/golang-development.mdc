@@ -1,0 +1,84 @@
+---
+description: Core Go development guidelines
+globs: *.go,**/*.go
+alwaysApply: false
+---
+
+# Go Development Guidelines
+
+## Running Go commands
+
+- Use standard Go toolchain commands
+    - Use `go run` for executing Go programs
+    - Use `go build` for building binaries
+    - Use `go test` for running tests (including Ginkgo tests)
+    - Use `go mod` for module management
+
+## Linting & Code Quality
+
+- ALWAYS use `golangci-lint run` to lint Go projects
+- Individual files can be linted using `golangci-lint run [OPTIONS] [FILES]...`
+- Use `go vet` for additional static analysis
+- ALWAYS run `gofmt` or `goimports` to format code
+
+## Code Style & Formatting
+
+- Go projects are formatted using `gofmt` or `goimports`
+- ALWAYS use `goimports` to automatically manage imports and format code
+- Follow Go conventions for naming:
+  - Use camelCase for unexported functions and variables
+  - Use PascalCase for exported functions and variables
+  - Use short, descriptive names
+  - Prefer single-letter names for short-lived variables in loops
+- ALWAYS write Go documentation comments for exported functions, types, and packages
+  - Follow Go doc conventions: start with the name of the item being documented
+  - ALWAYS describe possible edge cases, errors, and conditionals that materially affect the behavior
+- Follow effective Go guidelines and Go Code Review Comments
+- Keep functions focused and single-purpose
+
+## Project Structure
+
+- This project uses Go modules for dependency management
+- Tests should be placed alongside source code with `_test.go` suffix
+- Use `go test` for all testing (including Ginkgo/Gomega tests)
+    - ALWAYS use the format `go test [options] [packages]` when running tests
+    - Use `go test ./...` to run all tests in the project
+- Follow standard Go project layout conventions
+
+## Dependencies & Imports
+
+- Use `go mod` to manage dependencies via `go.mod`
+- Group imports: standard library, third-party, local imports (goimports handles this automatically)
+- Use `go mod tidy` to clean up unused dependencies
+- Avoid circular imports
+- Use semantic import versioning for major version changes
+
+## Error Handling
+
+- ALWAYS handle errors explicitly - never ignore them
+- Use specific error types and wrap errors with context using `fmt.Errorf` with `%w` verb
+- Provide meaningful error messages
+- Handle edge cases gracefully
+- Prefer returning errors over panicking
+- Use `log` package instead of `fmt.Print*` for debugging/logging
+
+## Performance & Best Practices
+
+- Use Go's built-in profiling tools when optimizing
+- Prefer channels and goroutines for concurrency
+- Be mindful of goroutine lifecycle and avoid leaks
+- Use context.Context for cancellation and timeouts
+- Avoid premature optimization but be mindful of performance
+
+## AI Assistant Instructions
+
+- Always suggest proper error handling when missing
+- Recommend tests when implementing new functionality
+- Point out potential race conditions or goroutine issues
+- Suggest more idiomatic Go approaches when applicable
+- Consider Go conventions and best practices
+- Suggest using interfaces for better testability
+description:
+globs:
+alwaysApply: false
+---

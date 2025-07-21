@@ -1,0 +1,66 @@
+---
+description: Git version control guidelines for Go projects
+globs:
+alwaysApply: true
+---
+
+# Version Control Guidelines
+
+These rules describe how to use `git` version control and should be used whenever working with version control.
+
+## Pre-commit linting and formatting
+
+- This project uses pre-commit hooks - they will be run on commit.
+- IF there are errors, sometimes they are fixed automatically, and need to be re-added to the staged changes.
+- IF the errors are not fixed automatically, do not attempt to fix them, STOP.
+
+## Commit Message Standards
+
+- **Always use Conventional Commits for all commit messages** following the specification at <https://www.conventionalcommits.org/en/v1.0.0/>
+- Use the format: `<type>(scope): <description>` - **scope is required**
+- Use the following conventional commit common types:
+  - Common types: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`
+  - Use `!` or `BREAKING CHANGE:` footer for breaking changes
+  - Keep commits focused and atomic
+- The scope should reflect the portion of the package that was modified, for example if your module is `github.com/user/gotool`:
+  - If modifying the module root or main package, use the package name as scope: `gotool`
+  - If modifying `pkg/utils/helpers.go`, use scope `utils`
+  - If modifying `internal/parser/parser.go`, use scope `parser`
+  - If modifying multiple packages, use the most relevant or common scope
+- Changes to GitHub Actions files should use the type `ci`.
+- Changes to repository configuration files such as `pre-commit-config.yaml`, should use the type `chore`.
+- Changes to the Cursor rules files should use the type `chore` with the scope `cursor`.
+- Changes to `go.mod` or `go.sum` should use the type `chore` with scope `deps`.
+
+## Commit Organization
+
+- **Group changes into small logical commits** - instead of making one large commit with multiple bullet points in the message, break changes into separate commits where each commit represents a single logical change or feature addition/fix
+
+## Examples
+
+- `feat(cli): add new CLI command for file processing`
+- `fix(parser): handle empty input files correctly`
+- `docs(readme): update README with installation instructions`
+- `chore(deps): update go dependencies`
+
+## Best Practices
+
+- Keep commits focused and atomic
+- Write clear, descriptive commit messages
+- Reference issues when applicable
+- Use present tense in commit messages
+
+## Extra CLI commands for git
+
+This section describes extra commands that should be used in preference of the
+default commands.
+
+- INSTEAD OF `git commit -m "[message]"` use `gcom "[message]"` to commit changes.
+- INSTEAD OF `git diff --cached` use `gsta | cat` to view all of the staged changes without pager interference.
+- INSTEAD OF `git diff` use `gdiff | cat` to view unstaged changes.
+- Use `gundo` to revert a commit automatically that was wrong.
+- Use `gunstage` to unstage changes that should not have been added.
+description:
+globs:
+alwaysApply: false
+---
