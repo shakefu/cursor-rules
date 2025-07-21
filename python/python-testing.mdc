@@ -8,15 +8,19 @@ alwaysApply: false
 
 ## What to test
 
-- Start with creating exercise tests, testing intended behavior of functions, classes, and modules
-- Try to minimally mock so we ensure that we aren't creating passthrough tests of no value
-- Once we have good exercise tests, then continue to create more tests for common edge cases
+- Start with creating exercise tests, testing intended behavior of functions,
+  classes, and modules
+- Try to minimally mock so we ensure that we aren't creating passthrough
+  tests of no value
+- Once we have good exercise tests, then continue to create more tests for
+  common edge cases
 
 ## Writing and refactoring tests
 
 - ALWAYS check linting after modifying a file before going on to the next file
 - ALWAYS run tests for the specific file after modifying to ensure tests pass
-- IF you are in the middle of modifying multiple files or refactoring, it may be okay that tests do not pass
+- IF you are in the middle of modifying multiple files or refactoring, it
+  may be okay that tests do not pass
 
 ## Test Structure & Organization
 
@@ -35,7 +39,9 @@ alwaysApply: false
 - Mock external dependencies appropriately
 - Test both success and failure cases
 - Include edge case testing
-- NEVER compare values to `True`, `False`, `None`, with equality comparisons `==`, use `is` or a direct truth check as appropriate based on the test content
+- NEVER compare values to `True`, `False`, `None`, with equality comparisons
+  `==`, use `is` or a direct truth check as appropriate based on the test
+  content
 
 ## Fixtures & Setup
 

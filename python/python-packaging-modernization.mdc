@@ -7,11 +7,13 @@ alwaysApply: false
 
 ## Converting setuptools to pyproject.toml
 
-When encountering legacy `setup.py` or `setup.cfg` files, convert them to modern `pyproject.toml` format following these guidelines:
+When encountering legacy `setup.py` or `setup.cfg` files, convert them to
+modern `pyproject.toml` format following these guidelines:
 
 ### Build System Configuration
 
 - Use `hatchling` as the build backend for compatibility with uv:
+
 ```toml
 [build-system]
 requires = ["hatchling"]
@@ -41,6 +43,7 @@ dependencies = [
 ### Section Ordering
 
 Organize sections in this order:
+
 1. `[project]` - All project metadata
 2. `[project.entry-points.*]` - Entry points configuration
 3. `[dependency-groups]` - Optional dependency groups (if needed)
@@ -50,6 +53,7 @@ Organize sections in this order:
 ### Entry Points Migration
 
 Convert setuptools entry points format:
+
 ```python
 # OLD setup.py
 entry_points={
@@ -59,6 +63,7 @@ entry_points={
 ```
 
 To modern toml format:
+
 ```toml
 [project.scripts]
 cmd = "module:function"
@@ -71,7 +76,8 @@ key = "module"
 
 - Always declare dependencies explicitly in the `dependencies` array
 - Use appropriate version constraints
-- For the pyconfig project, ensure `pyconfig` is listed as a dependency for test packages
+- For the pyconfig project, ensure `pyconfig` is listed as a dependency for
+  test packages
 
 ### Author Information
 

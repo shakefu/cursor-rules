@@ -43,6 +43,7 @@ gh api repos/<owner>/<repo>/tags
 - Include version tags as comments for reference
 
 Example format:
+
 ```yaml
 uses: owner/repo@commit_hash # v1.2.3
 ```

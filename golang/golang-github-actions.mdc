@@ -52,10 +52,7 @@ gh api repos/<owner>/<repo>/tags
 - Run tests with race detection in CI: `go test -race ./...`
 
 Example format:
+
 ```yaml
 uses: owner/repo@commit_hash # v1.2.3
 ```
-description:
-globs:
-alwaysApply: false
----
