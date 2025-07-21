@@ -8,15 +8,20 @@ alwaysApply: false
 
 ## What to test
 
-- Start with creating behavior tests using Ginkgo's BDD style, testing intended behavior of functions, types, and packages
-- Try to minimally mock so we ensure that we aren't creating passthrough tests of no value
-- Once we have good behavior tests, then continue to create more tests for common edge cases
+- Start with creating behavior tests using Ginkgo's BDD style, testing
+  intended behavior of functions, types, and packages
+- Try to minimally mock so we ensure that we aren't creating passthrough
+  tests of no value
+- Once we have good behavior tests, then continue to create more tests for
+  common edge cases
 
 ## Writing and refactoring tests
 
 - ALWAYS check linting after modifying a file before going on to the next file
-- ALWAYS run tests for the specific package after modifying to ensure tests pass using `go test`
-- IF you are in the middle of modifying multiple files or refactoring, it may be okay that tests do not pass
+- ALWAYS run tests for the specific package after modifying to ensure tests
+  pass using `go test`
+- IF you are in the middle of modifying multiple files or refactoring, it
+  may be okay that tests do not pass
 
 ## Test Structure & Organization
 
@@ -42,6 +47,7 @@ alwaysApply: false
 ## Ginkgo & Gomega Specifics
 
 - Structure tests using Ginkgo's BDD format:
+
   ```go
   var _ = Describe("ComponentName", func() {
       Context("when condition", func() {
@@ -51,6 +57,7 @@ alwaysApply: false
       })
   })
   ```
+
 - Use Gomega's rich set of matchers for clear, readable assertions
 - Use `BeforeEach` for test setup and `AfterEach` for cleanup
 - Group related tests in `Context` blocks with descriptive names
@@ -65,7 +72,3 @@ alwaysApply: false
 - Ginkgo tests integrate with standard Go testing tools and CI systems
 - Use `go test -race` to detect race conditions
 - Use `go test -cover` for coverage reports
-description:
-globs:
-alwaysApply: false
----

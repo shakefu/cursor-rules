@@ -40,10 +40,12 @@ go list -m <module>
 - Use `go mod tidy` to manage Go module dependencies
 - Keep `go.mod` and `go.sum` up to date with version constraints
 - Regularly update dependencies to latest compatible versions:
+
   ```bash
   go get -u ./...  # Update all dependencies
   go get -u <module>@latest  # Update specific module
   ```
+
 - Use dependency scanning tools when available
 - Document version requirements clearly in documentation
 
@@ -58,7 +60,8 @@ go list -m <module>
 
 - Use commit hashes for GitHub Actions instead of version tags
 - Include version tags as comments for reference
-- Regularly audit dependencies for security vulnerabilities using `go mod tidy` and security scanners
+- Regularly audit dependencies for security vulnerabilities using
+  `go mod tidy` and security scanners
 - Keep all tooling and dependencies updated
 - Review `go.sum` changes for unexpected modifications
 
@@ -68,7 +71,3 @@ go list -m <module>
 - Use version tags (v1.0.0, v2.0.0, etc.) for releases
 - Consider Go's compatibility promise when versioning
 - Use major version suffixes for breaking changes (v2, v3, etc.)
-description:
-globs:
-alwaysApply: false
----

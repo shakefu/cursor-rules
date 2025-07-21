@@ -9,10 +9,10 @@ alwaysApply: false
 ## Running Go commands
 
 - Use standard Go toolchain commands
-    - Use `go run` for executing Go programs
-    - Use `go build` for building binaries
-    - Use `go test` for running tests (including Ginkgo tests)
-    - Use `go mod` for module management
+  - Use `go run` for executing Go programs
+  - Use `go build` for building binaries
+  - Use `go test` for running tests (including Ginkgo tests)
+  - Use `go mod` for module management
 
 ## Linting & Code Quality
 
@@ -32,7 +32,8 @@ alwaysApply: false
   - Prefer single-letter names for short-lived variables in loops
 - ALWAYS write Go documentation comments for exported functions, types, and packages
   - Follow Go doc conventions: start with the name of the item being documented
-  - ALWAYS describe possible edge cases, errors, and conditionals that materially affect the behavior
+  - ALWAYS describe possible edge cases, errors, and conditionals that
+    materially affect the behavior
 - Follow effective Go guidelines and Go Code Review Comments
 - Keep functions focused and single-purpose
 
@@ -41,14 +42,15 @@ alwaysApply: false
 - This project uses Go modules for dependency management
 - Tests should be placed alongside source code with `_test.go` suffix
 - Use `go test` for all testing (including Ginkgo/Gomega tests)
-    - ALWAYS use the format `go test [options] [packages]` when running tests
-    - Use `go test ./...` to run all tests in the project
+  - ALWAYS use the format `go test [options] [packages]` when running tests
+  - Use `go test ./...` to run all tests in the project
 - Follow standard Go project layout conventions
 
 ## Dependencies & Imports
 
 - Use `go mod` to manage dependencies via `go.mod`
-- Group imports: standard library, third-party, local imports (goimports handles this automatically)
+- Group imports: standard library, third-party, local imports (goimports
+  handles this automatically)
 - Use `go mod tidy` to clean up unused dependencies
 - Avoid circular imports
 - Use semantic import versioning for major version changes
@@ -56,7 +58,8 @@ alwaysApply: false
 ## Error Handling
 
 - ALWAYS handle errors explicitly - never ignore them
-- Use specific error types and wrap errors with context using `fmt.Errorf` with `%w` verb
+- Use specific error types and wrap errors with context using `fmt.Errorf`
+  with `%w` verb
 - Provide meaningful error messages
 - Handle edge cases gracefully
 - Prefer returning errors over panicking
@@ -78,7 +81,3 @@ alwaysApply: false
 - Suggest more idiomatic Go approaches when applicable
 - Consider Go conventions and best practices
 - Suggest using interfaces for better testability
-description:
-globs:
-alwaysApply: false
----

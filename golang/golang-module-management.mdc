@@ -7,11 +7,13 @@ alwaysApply: false
 
 ## Modern Go Module Structure
 
-All Go projects should use Go modules with a properly structured `go.mod` file following these guidelines:
+All Go projects should use Go modules with a properly structured `go.mod`
+file following these guidelines:
 
 ### Module Declaration
 
 - Use descriptive module paths that reflect the repository location:
+
 ```go
 module github.com/username/repository-name
 ```
@@ -19,6 +21,7 @@ module github.com/username/repository-name
 ### Go Version Declaration
 
 - Always specify the minimum Go version required:
+
 ```go
 go 1.21
 ```
@@ -33,7 +36,7 @@ go 1.21
 
 Follow standard Go project layout:
 
-```
+```text
 project/
 ├── go.mod
 ├── go.sum
@@ -56,6 +59,7 @@ project/
 ### Module Commands
 
 Common module management commands:
+
 ```bash
 go mod init <module-path>    # Initialize new module
 go mod tidy                  # Add missing and remove unused modules
@@ -88,7 +92,3 @@ go list -m all               # List all modules
 - Use `go mod` commands to ensure compatibility
 - Follow Go's module versioning guidelines
 - Consider backward compatibility when making changes
-description:
-globs:
-alwaysApply: false
----

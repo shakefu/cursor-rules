@@ -6,15 +6,19 @@ alwaysApply: false
 
 # Documentation Guidelines
 
-@Docs https://github.github.com/gfm/
+@Docs <https://github.github.com/gfm/>
 
 ## Markdown Formatting
 
 - Keep all documentation files properly formatted
 - Run markdown linting before committing documentation changes
   - ALWAYS use `pre-commit` for linting and formatting
-  - ALWAYS use `pre-commit run [--all-files | --files [FILES ...]] prettier` to ensure markdown files conform to prettier's standards before running markdown lint
-  - ALWAYS use `pre-commit run [--all-files | --files [FILES ...]] markdownlint-cli2` hook for formatting a specific markdown file or all markdown files in the repository
+  - ALWAYS use `pre-commit run [--all-files | --files [FILES ...]] prettier`
+    to ensure markdown files conform to prettier's standards before running
+    markdown lint
+  - ALWAYS use `pre-commit run [--all-files | --files [FILES ...]] markdownlint-cli2`
+    hook for formatting a specific markdown file or all markdown files in the
+    repository
 - Use proper markdown formatting:
   - Add blank lines before and after code blocks
   - Use proper heading hierarchy
@@ -47,7 +51,3 @@ alwaysApply: false
 - Use `go doc` to verify documentation formatting
 - Include runnable examples in documentation when helpful
 - Document exported APIs thoroughly
-description:
-globs:
-alwaysApply: false
----

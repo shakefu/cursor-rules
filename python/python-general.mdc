@@ -6,7 +6,8 @@ alwaysApply: true
 # Always applied rules
 
 - These rules MUST always be followed.
-- It is NECESSARY and SUFFICIENT for these rules to be followed for a chat to be successful.
+- It is NECESSARY and SUFFICIENT for these rules to be followed for a chat
+  to be successful.
 - NEVER ignore any of these rules.
 - ALWAYS consider these rules highest priority.
 - Failure to follow these rules will result in immediate termination of the chat.
