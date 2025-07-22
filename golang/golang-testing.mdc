@@ -1,74 +1,410 @@
----
-description: Testing guidelines and best practices using Ginkgo and Gomega
-globs: **/*_test.go,*_test.go
-alwaysApply: false
----
+# Go Testing Guidelines
 
-# Testing Guidelines
+**Rationale:** These guidelines promote comprehensive, maintainable test
+suites using Ginkgo's BDD style and Gomega's expressive matchers. They
+emphasize behavior-driven testing and idiomatic Go testing practices.
 
-## What to test
+## Testing Strategy
 
-- Start with creating behavior tests using Ginkgo's BDD style, testing
-  intended behavior of functions, types, and packages
-- Try to minimally mock so we ensure that we aren't creating passthrough
-  tests of no value
-- Once we have good behavior tests, then continue to create more tests for
-  common edge cases
+**Guideline:** Start with behavior-driven tests using Ginkgo's descriptive
+style, focusing on intended functionality before expanding to edge cases.
 
-## Writing and refactoring tests
+### Testing Strategy Examples
 
-- ALWAYS check linting after modifying a file before going on to the next file
-- ALWAYS run tests for the specific package after modifying to ensure tests
-  pass using `go test`
-- IF you are in the middle of modifying multiple files or refactoring, it
-  may be okay that tests do not pass
+**BDD-style test priorities:**
 
-## Test Structure & Organization
+```go
+var _ = Describe("UserService", func() {
+    var userService *UserService
 
-- Write comprehensive tests for all new functionality using Ginkgo and Gomega
-- Use Ginkgo's `Describe`, `Context`, and `It` blocks appropriately
-- Use Gomega matchers for assertions
-- Aim for high test coverage
-- Test files should be named `*_test.go` and placed alongside source code
-- Use descriptive test descriptions that explain what is being tested in plain language
-- Tests run through standard `go test` command
+    BeforeEach(func() {
+        userService = NewUserService(testDB, logger)
+    })
 
-## Test Best Practices
+    // 1. Start with happy path behavior
+    Describe("CreateUser", func() {
+        Context("when provided with valid user data", func() {
+            It("should create a user successfully", func() {
+                user, err := userService.CreateUser(ctx, "test@example.com", "securepass")
 
-- Use `go test` for all testing (Ginkgo integrates seamlessly)
-- Use Ginkgo's `BeforeEach` and `AfterEach` for test setup and cleanup
-- Use Ginkgo's `BeforeSuite` and `AfterSuite` for expensive setup
-- Use Gomega's expressive matchers instead of basic equality checks
-- Test both success and failure cases using Ginkgo's BDD style
-- Include edge case testing in separate `Context` blocks
-- Use `Expect(err).ToNot(HaveOccurred())` instead of checking `err != nil`
-- Use appropriate Gomega matchers like `BeNil()`, `BeTrue()`, `BeFalse()`, etc.
+                Expect(err).ToNot(HaveOccurred())
+                Expect(user.Email).To(Equal("test@example.com"))
+                Expect(user.ID).ToNot(BeEmpty())
+                Expect(user.CreatedAt).To(BeTemporally("~", time.Now(), time.Second))
+            })
+        })
 
-## Ginkgo & Gomega Specifics
+        // 2. Add edge cases and error conditions
+        Context("when email is already taken", func() {
+            BeforeEach(func() {
+                _, err := userService.CreateUser(ctx, "existing@example.com", "password")
+                Expect(err).ToNot(HaveOccurred())
+            })
 
-- Structure tests using Ginkgo's BDD format:
+            It("should return a user already exists error", func() {
+                _, err := userService.CreateUser(ctx, "existing@example.com", "password")
 
-  ```go
-  var _ = Describe("ComponentName", func() {
-      Context("when condition", func() {
-          It("should behave correctly", func() {
-              Expect(result).To(Equal(expected))
-          })
-      })
-  })
-  ```
+                Expect(err).To(HaveOccurred())
+                Expect(err).To(MatchError(ContainSubstring("already exists")))
+            })
+        })
+    })
+})
+```
 
-- Use Gomega's rich set of matchers for clear, readable assertions
-- Use `BeforeEach` for test setup and `AfterEach` for cleanup
-- Group related tests in `Context` blocks with descriptive names
-- Use `By()` steps for complex test scenarios
-- Use table-driven tests with Ginkgo's `DescribeTable` when appropriate
+**Minimal mocking approach:**
 
-## Running Tests
+```go
+var _ = Describe("EmailService", func() {
+    var (
+        emailService *EmailService
+        mockSender   *MockEmailSender
+    )
 
-- Use `go test ./...` to run all tests in the project
-- Use `go test -v ./...` for verbose output
-- Use `go test -run TestName` to run specific tests
-- Ginkgo tests integrate with standard Go testing tools and CI systems
-- Use `go test -race` to detect race conditions
-- Use `go test -cover` for coverage reports
+    BeforeEach(func() {
+        mockSender = &MockEmailSender{}
+        emailService = NewEmailService(mockSender, logger)
+    })
+
+    // Good: Mock external dependencies only
+    Describe("SendWelcomeEmail", func() {
+        Context("when user registration succeeds", func() {
+            It("should send a welcome email", func() {
+                user := &User{Email: "test@example.com", Name: "Test User"}
+
+                err := emailService.SendWelcomeEmail(ctx, user)
+
+                Expect(err).ToNot(HaveOccurred())
+                Expect(mockSender.SentEmails).To(HaveLen(1))
+                Expect(mockSender.SentEmails[0].To).To(Equal("test@example.com"))
+                Expect(mockSender.SentEmails[0].Subject).To(ContainSubstring("Welcome"))
+            })
+        })
+    })
+
+    // Avoid: Over-mocking internal logic
+    // Don't mock internal validation or business logic
+})
+```
+
+## Test Development Workflow
+
+**Guideline:** Develop tests incrementally with immediate feedback using Go's
+testing tools and Ginkgo's focused testing capabilities.
+
+### Development Workflow Examples
+
+**Recommended workflow:**
+
+```bash
+# 1. Run tests for specific package while developing
+go test ./internal/user -v
+
+# 2. Use Ginkgo's focus feature for rapid iteration
+ginkgo -focus="CreateUser.*valid.*data" ./internal/user
+
+# 3. Run with file watching for continuous feedback
+ginkgo watch ./internal/user
+
+# 4. Check linting alongside testing
+golangci-lint run ./internal/user/...
+go test ./internal/user -v
+
+# 5. Run full test suite with coverage before committing
+go test ./... -cover -race
+```
+
+**Focused testing with Ginkgo:**
+
+```go
+var _ = Describe("UserService", func() {
+    // Use FDescribe, FContext, or FIt to focus on specific tests
+    FDescribe("CreateUser", func() {  // Only this describe block will run
+        Context("when validating email format", func() {
+            It("should accept valid email addresses", func() {
+                // This test will run
+            })
+
+            FIt("should reject invalid email addresses", func() {
+                // This test will run (focused within focused describe)
+            })
+        })
+
+        Context("when checking password strength", func() {
+            XIt("should require minimum password length", func() {
+                // This test is temporarily disabled
+            })
+        })
+    })
+
+    Describe("UpdateUser", func() {
+        // This entire describe block will be skipped due to FDescribe above
+    })
+})
+```
+
+## Test Structure and Organization
+
+**Guideline:** Use Ginkgo's hierarchical structure to organize tests logically
+and create clear, readable test descriptions.
+
+### Test Organization Examples
+
+**Ginkgo test structure:**
+
+```go
+var _ = Describe("PaymentProcessor", func() {
+    var (
+        processor *PaymentProcessor
+        mockBank  *MockBankAPI
+        testCard  *CreditCard
+    )
+
+    BeforeEach(func() {
+        mockBank = &MockBankAPI{}
+        processor = NewPaymentProcessor(mockBank, logger)
+        testCard = &CreditCard{
+            Number: "4111111111111111",
+            CVV:    "123",
+            Expiry: "12/25",
+        }
+    })
+
+    Describe("ProcessPayment", func() {
+        Context("when processing a valid payment", func() {
+            BeforeEach(func() {
+                mockBank.SetupSuccessResponse()
+            })
+
+            It("should charge the card successfully", func() {
+                result, err := processor.ProcessPayment(ctx, testCard, 100.00)
+
+                Expect(err).ToNot(HaveOccurred())
+                Expect(result.Success).To(BeTrue())
+                Expect(result.TransactionID).ToNot(BeEmpty())
+                Expect(result.Amount).To(Equal(100.00))
+            })
+
+            It("should record the transaction", func() {
+                By("processing the payment")
+                result, err := processor.ProcessPayment(ctx, testCard, 100.00)
+                Expect(err).ToNot(HaveOccurred())
+
+                By("checking the transaction was recorded")
+                transaction := processor.GetTransaction(result.TransactionID)
+                Expect(transaction).ToNot(BeNil())
+                Expect(transaction.Status).To(Equal("completed"))
+            })
+        })
+
+        Context("when the bank API returns an error", func() {
+            BeforeEach(func() {
+                mockBank.SetupErrorResponse("insufficient funds")
+            })
+
+            It("should return a payment declined error", func() {
+                _, err := processor.ProcessPayment(ctx, testCard, 100.00)
+
+                Expect(err).To(HaveOccurred())
+                Expect(err).To(MatchError(ContainSubstring("declined")))
+            })
+        })
+
+        Context("when the card is expired", func() {
+            BeforeEach(func() {
+                testCard.Expiry = "01/20" // Expired card
+            })
+
+            It("should return a card expired error", func() {
+                _, err := processor.ProcessPayment(ctx, testCard, 100.00)
+
+                Expect(err).To(HaveOccurred())
+                Expect(err).To(MatchError(ContainSubstring("expired")))
+            })
+        })
+    })
+})
+```
+
+## Test Best Practices with Ginkgo and Gomega
+
+**Guideline:** Leverage Gomega's rich matcher library and Ginkgo's structure
+to write expressive, maintainable tests that clearly communicate intent.
+
+### Ginkgo and Gomega Examples
+
+**Effective Gomega matchers:**
+
+```go
+var _ = Describe("User Model", func() {
+    var user *User
+
+    BeforeEach(func() {
+        user = &User{
+            ID:    "123",
+            Email: "test@example.com",
+            Roles: []string{"user", "admin"},
+            CreatedAt: time.Now(),
+        }
+    })
+
+    It("should use appropriate matchers for different types", func() {
+        // Boolean checks
+        Expect(user.IsActive()).To(BeTrue())
+        Expect(user.IsDeleted()).To(BeFalse())
+
+        // Nil checks
+        Expect(user.LastLogin).To(BeNil())
+
+        // String matching
+        Expect(user.Email).To(Equal("test@example.com"))
+        Expect(user.Email).To(ContainSubstring("@example"))
+        Expect(user.Email).To(MatchRegexp(`\w+@\w+\.\w+`))
+
+        // Collection matchers
+        Expect(user.Roles).To(HaveLen(2))
+        Expect(user.Roles).To(ContainElement("admin"))
+        Expect(user.Roles).To(ConsistOf("user", "admin"))
+
+        // Numeric comparisons
+        Expect(user.LoginCount).To(BeNumerically(">=", 0))
+
+        // Time comparisons
+        Expect(user.CreatedAt).To(BeTemporally("~", time.Now(), time.Second))
+
+        // Error matching
+        err := user.Validate()
+        Expect(err).To(HaveOccurred())
+        Expect(err).To(MatchError(ContainSubstring("invalid email")))
+    })
+})
+```
+
+**Table-driven tests with Ginkgo:**
+
+```go
+var _ = Describe("Email Validation", func() {
+    DescribeTable("validating email addresses",
+        func(email string, shouldBeValid bool) {
+            result := validator.IsValidEmail(email)
+            if shouldBeValid {
+                Expect(result).To(BeTrue(), "Expected %s to be valid", email)
+            } else {
+                Expect(result).To(BeFalse(), "Expected %s to be invalid", email)
+            }
+        },
+        Entry("valid standard email", "user@example.com", true),
+        Entry("valid email with subdomain", "user@mail.example.com", true),
+        Entry("valid email with plus", "user+tag@example.com", true),
+        Entry("invalid email without @", "userexample.com", false),
+        Entry("invalid email without domain", "user@", false),
+        Entry("invalid empty email", "", false),
+    )
+})
+```
+
+## Advanced Testing Patterns
+
+**Guideline:** Use Ginkgo's advanced features for complex testing scenarios
+and better test organization.
+
+### Advanced Testing Examples
+
+**Setup and teardown patterns:**
+
+```go
+var _ = Describe("Database Operations", func() {
+    var (
+        db   *sql.DB
+        user *User
+    )
+
+    BeforeSuite(func() {
+        // Expensive setup that runs once for all tests
+        db = setupTestDatabase()
+        runMigrations(db)
+    })
+
+    AfterSuite(func() {
+        // Cleanup after all tests
+        db.Close()
+    })
+
+    BeforeEach(func() {
+        // Reset state before each test
+        clearDatabase(db)
+        user = createTestUser(db)
+    })
+
+    AfterEach(func() {
+        // Clean up after each test
+        if CurrentGinkgoTestDescription().Failed {
+            logDatabaseState(db) // Debug info for failed tests
+        }
+    })
+
+    Describe("User CRUD operations", func() {
+        // Tests here have clean database state for each test
+    })
+})
+```
+
+**Testing concurrent behavior:**
+
+```go
+var _ = Describe("Concurrent Access", func() {
+    It("should handle concurrent user creation safely", func() {
+        const numGoroutines = 10
+        results := make(chan error, numGoroutines)
+
+        for i := 0; i < numGoroutines; i++ {
+            go func(id int) {
+                email := fmt.Sprintf("user%d@example.com", id)
+                _, err := userService.CreateUser(ctx, email, "password")
+                results <- err
+            }(i)
+        }
+
+        // Collect all results
+        var errors []error
+        for i := 0; i < numGoroutines; i++ {
+            if err := <-results; err != nil {
+                errors = append(errors, err)
+            }
+        }
+
+        Expect(errors).To(BeEmpty(), "No concurrent creation should fail")
+
+        users, err := userService.GetAllUsers(ctx)
+        Expect(err).ToNot(HaveOccurred())
+        Expect(users).To(HaveLen(numGoroutines))
+    })
+})
+```
+
+## AI Assistant Collaboration
+
+**Guideline:** When working with an AI assistant on Go testing, provide
+context about your testing framework choice, concurrency requirements, and
+the specific behavior being tested.
+
+### AI Collaboration Examples
+
+**Effective collaboration patterns:**
+
+- "I need to test this HTTP handler that processes file uploads using Gin
+  framework. We're using Ginkgo/Gomega for testing. Can you help me write
+  tests that cover both successful uploads and error scenarios?"
+- "This Ginkgo test is flaky due to timing issues with goroutines. Can you
+  help me identify race conditions and suggest better synchronization?"
+- "I want to test this service that interacts with Redis and PostgreSQL. Can
+  you suggest good mocking strategies using Ginkgo's BeforeEach setup?"
+
+**Include relevant context:**
+
+- Go version and key dependencies (Gin, Echo, GORM, etc.)
+- Testing framework preference (Ginkgo/Gomega vs standard testing)
+- Database and external service dependencies
+- Concurrency patterns and potential race conditions
+- Performance requirements and load testing needs
+- Current test coverage and areas needing improvement

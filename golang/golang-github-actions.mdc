@@ -1,58 +1,439 @@
----
-description: GitHub Actions security and best practices for Go projects
-globs: [".github/workflows/*.yml", ".github/workflows/*.yaml", ".github/workflows/**/*.yml", ".github/workflows/**/*.yaml"]
-alwaysApply: false
----
 
 # GitHub Actions Guidelines
 
+**Rationale:** These guidelines promote secure, efficient CI/CD workflows
+for Go projects. They emphasize security best practices, effective module
+caching, and comprehensive testing with Go-specific tooling.
+
 ## Security Best Practices
 
-- **Always use commit hashes for GitHub Actions** instead of version tags
-  - This prevents supply chain attacks by ensuring we're using exact versions
-  - Include the version tag as a comment for reference
-  - Example: `uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4`
+**Guideline:** Use commit hashes instead of version tags to prevent supply
+chain attacks and ensure reproducible builds.
 
-## Go-Specific Actions
+### Security Examples
 
-- Use `actions/setup-go` for setting up Go environment
-- Always specify Go version in workflows
-- Use Go's built-in tools for building and testing
-- Cache Go modules using `actions/cache` with appropriate cache keys
-
-## Version Management
-
-- Keep actions up to date with their latest stable versions
-- Use caching where appropriate to speed up workflows (especially for Go modules)
-- Follow security best practices for GitHub Actions
-
-## Version Checking Commands
-
-Use these commands to find latest versions:
-
-```bash
-# For GitHub-hosted projects
-gh release list --repo <owner>/<repo> --limit 1
-
-# For GitHub Actions specifically
-gh api repos/<owner>/<repo>/releases/latest
-
-# For GitHub Actions versions
-gh api repos/<owner>/<repo>/tags
-```
-
-## Best Practices
-
-- Never guess or use potentially outdated versions
-- Always verify versions from official repositories
-- Keep GitHub Actions and their versions up to date
-- Use commit hashes for GitHub Actions instead of version tags
-- Include version tags as comments for reference
-- Cache Go modules and build artifacts appropriately
-- Run tests with race detection in CI: `go test -race ./...`
-
-Example format:
+**Secure action references:**
 
 ```yaml
-uses: owner/repo@commit_hash # v1.2.3
+name: Go CI
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # ✅ Good: Use commit hash with version comment
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5
+        with:
+          go-version: '1.21'
+
+      # ❌ Avoid: Version tags can be moved to malicious commits
+      # - uses: actions/checkout@v4
+      # - uses: actions/setup-go@v5
 ```
+
+**Finding commit hashes for Go-specific actions:**
+
+```bash
+# Common Go-related actions
+gh api repos/actions/setup-go/releases/latest
+gh api repos/golangci/golangci-lint-action/releases/latest
+gh api repos/codecov/codecov-action/releases/latest
+
+# Method for any action
+git ls-remote --tags https://github.com/actions/setup-go.git
+```
+
+## Go CI/CD Workflow Patterns
+
+**Guideline:** Create comprehensive workflows that test across multiple Go
+versions, leverage Go's built-in tooling, and include race condition detection.
+
+### Complete Workflow Examples
+
+**Basic Go testing workflow:**
+
+```yaml
+name: Go Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        go-version: ['1.20', '1.21', '1.22']
+        exclude:
+          # Reduce matrix for faster CI
+          - os: windows-latest
+            go-version: '1.20'
+          - os: macos-latest
+            go-version: '1.20'
+
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Cache Go modules
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ matrix.go-version }}-\
+            ${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ matrix.go-version }}-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Run tests
+        run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3
+        with:
+          file: ./coverage.txt
+          fail_ci_if_error: true
+```
+
+**Advanced Go workflow with linting and security scanning:**
+
+```yaml
+name: Advanced Go CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+env:
+  GO_VERSION: '1.21'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@3cfe3a4abbb849e10058ce4af15d205b6da42804
+          # v4
+        with:
+          version: latest
+          args: --timeout=5m
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.20', '1.21', '1.22']
+
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Cache Go modules
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ matrix.go-version }}-\
+            ${{ hashFiles('**/go.sum') }}
+
+      - name: Run tests with race detection
+        run: |
+          go test -race -v -coverprofile=coverage.txt -covermode=atomic ./...
+          go test -race -v -short -timeout=30s ./...
+
+      - name: Run benchmarks
+        run: go test -bench=. -benchmem ./...
+
+      - name: Check for vulnerabilities
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+  build:
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'release'
+
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build binary
+        run: |
+          mkdir -p dist
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
+             -ldflags="-w -s" \
+             -o dist/myapp-${{ matrix.goos }}-${{ matrix.goarch }} \
+             ./cmd/myapp
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8
+          # v4
+        with:
+          name: myapp-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935
+          # v4
+        with:
+          path: artifacts/
+
+      - name: Create release archives
+        run: |
+          cd artifacts
+          for dir in */; do
+            cd "$dir"
+            tar -czf "../${dir%/}.tar.gz" *
+            cd ..
+          done
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@69320dbe05506a9a39fc8ae11030b214ec2d1f87
+          # v2
+        with:
+          files: artifacts/*.tar.gz
+```
+
+## Caching and Performance Optimization
+
+**Guideline:** Optimize Go workflows with effective caching of modules and
+build artifacts to reduce CI time and resource usage.
+
+### Caching Examples
+
+**Go module and build caching:**
+
+```yaml
+- name: Cache Go modules and build cache
+  uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4
+  with:
+    path: |
+      ~/go/pkg/mod
+      ~/.cache/go-build
+    key: ${{ runner.os }}-go-${{ matrix.go-version }}-\
+      ${{ hashFiles('**/go.sum') }}
+    restore-keys: |
+      ${{ runner.os }}-go-${{ matrix.go-version }}-
+      ${{ runner.os }}-go-
+
+- name: Download and verify dependencies
+  run: |
+    go mod download
+    go mod verify
+```
+
+**golangci-lint caching:**
+
+```yaml
+- name: golangci-lint
+  uses: golangci/golangci-lint-action@3cfe3a4abbb849e10058ce4af15d204b6da42804
+    # v4
+  with:
+    version: latest
+    # The action has built-in caching
+    skip-cache: false
+    skip-pkg-cache: false
+    skip-build-cache: false
+```
+
+**Docker layer caching for Go builds:**
+
+```yaml
+- name: Set up Docker Buildx
+  uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3
+
+- name: Build and push Docker image
+  uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5
+  with:
+    context: .
+    platforms: linux/amd64,linux/arm64
+    push: false
+    cache-from: type=gha
+    cache-to: type=gha,mode=max
+    tags: myapp:latest
+```
+
+## Go-Specific Testing and Quality Checks
+
+**Guideline:** Leverage Go's built-in testing tools and community standards
+for comprehensive quality assurance.
+
+### Go Testing Examples
+
+**Comprehensive test execution:**
+
+```yaml
+- name: Run tests with multiple configurations
+  run: |
+    # Unit tests with race detection
+    go test -race -v ./...
+
+    # Integration tests (if tagged)
+    go test -tags=integration -v ./...
+
+    # Short tests for quick feedback
+    go test -short -v ./...
+
+    # Benchmarks
+    go test -bench=. -benchmem -count=3 ./...
+
+    # Coverage report
+    go test -coverprofile=coverage.out -covermode=atomic ./...
+    go tool cover -html=coverage.out -o coverage.html
+
+- name: Upload coverage artifacts
+  uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4
+  with:
+    name: coverage-report
+    path: coverage.html
+```
+
+**Security and vulnerability scanning:**
+
+```yaml
+- name: Security scan
+  run: |
+    # Install security tools
+    go install golang.org/x/vuln/cmd/govulncheck@latest
+    go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+
+    # Run vulnerability check
+    govulncheck ./...
+
+    # Run security scan
+    gosec ./...
+
+- name: Dependency review
+  uses: actions/dependency-review-action@72eb03d02c7872a771aacd928f3123ac62ad6d3a
+    # v4
+  if: github.event_name == 'pull_request'
+```
+
+## Version Management and Updates
+
+**Guideline:** Keep actions and Go versions updated systematically while
+maintaining compatibility and security.
+
+### Go Version Management Examples
+
+**Matrix testing with Go versions:**
+
+```yaml
+strategy:
+  matrix:
+    go-version: ['1.20', '1.21', '1.22']
+    include:
+      # Test with latest stable and tip
+      - go-version: 'stable'
+      - go-version: 'oldstable'
+  fail-fast: false  # Continue testing other versions if one fails
+```
+
+**Dependabot for Go modules and actions:**
+
+```yaml
+# .github/dependabot.yml
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+```
+
+## AI Assistant Collaboration
+
+**Guideline:** When working with an AI assistant on Go GitHub Actions,
+provide context about your project's architecture, dependencies, and
+deployment requirements.
+
+### Go GitHub Actions Collaboration Examples
+
+**Effective collaboration patterns:**
+
+- "I need a GitHub Actions workflow for a Go microservice that uses gRPC,
+  tests with Ginkgo/Gomega, and deploys to Kubernetes. Can you help me set
+  up comprehensive testing with race detection and cross-platform builds?"
+- "This Go workflow is running slowly. Can you help me optimize caching for
+  Go modules and build artifacts, and parallelize the test execution?"
+- "I want to add security scanning and vulnerability checks to my Go CI
+  pipeline. What tools would you recommend and how should I configure them?"
+
+**Include relevant context:**
+
+- Go versions you need to support
+- Testing framework (standard testing, Ginkgo/Gomega, Testify)
+- Build targets and platforms (Linux, Windows, macOS, ARM64)
+- Dependencies and module structure
+- Deployment targets (Docker, Kubernetes, cloud platforms)
+- Security requirements and compliance needs
+- Performance requirements and optimization goals

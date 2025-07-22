@@ -1,53 +1,506 @@
----
-description: Documentation and markdown formatting guidelines
-globs: *.md,**/*.md,README*
-alwaysApply: false
----
 
-# Documentation Guidelines
+# Go Documentation Guidelines
 
-@Docs <https://github.github.com/gfm/>
+**Rationale:** These guidelines promote clear, consistent documentation for
+Go projects following Go community conventions. They emphasize both markdown
+documentation and Go's built-in documentation tools like `go doc`.
 
-## Markdown Formatting
+## Markdown Formatting Standards
 
-- Keep all documentation files properly formatted
-- Run markdown linting before committing documentation changes
-  - ALWAYS use `pre-commit` for linting and formatting
-  - ALWAYS use `pre-commit run [--all-files | --files [FILES ...]] prettier`
-    to ensure markdown files conform to prettier's standards before running
-    markdown lint
-  - ALWAYS use `pre-commit run [--all-files | --files [FILES ...]] markdownlint-cli2`
-    hook for formatting a specific markdown file or all markdown files in the
-    repository
-- Use proper markdown formatting:
-  - Add blank lines before and after code blocks
-  - Use proper heading hierarchy
-  - Keep line length reasonable (88 characters)
-  - Use proper list formatting with blank lines between list items
+**Guideline:** Use consistent markdown formatting and automated tools to
+maintain documentation quality and readability.
 
-## Documentation Standards
+### Formatting Examples
 
-- Keep README.md updated with new features
-- Document any breaking changes
-- Add Go documentation comments to all exported functions, types, and packages
-- Follow the project's markdown style guide
-- Use pre-commit hooks to enforce markdown formatting
-- Check markdown files with `markdownlint-cli2` before committing
-- Include Go-specific documentation like package examples
+**Pre-commit workflow for Go documentation:**
 
-## Content Guidelines
+```bash
+# Check markdown formatting before committing
+pre-commit run prettier --all-files
+pre-commit run markdownlint-cli2 --all-files
 
-- Write clear, concise documentation
-- Include code examples where helpful, especially for Go package usage
-- Keep documentation up to date with code changes
-- Use consistent terminology throughout
-- Provide installation and usage instructions
-- Document Go module import paths clearly
-- Include examples of Go package usage when applicable
+# Or for specific files
+pre-commit run prettier --files README.md docs/api.md
+pre-commit run markdownlint-cli2 --files README.md
+```
 
-## Go-Specific Documentation
+**Good markdown formatting for Go projects:**
 
-- Follow Go documentation conventions for package comments
-- Use `go doc` to verify documentation formatting
-- Include runnable examples in documentation when helpful
-- Document exported APIs thoroughly
+```markdown
+# GoProject
+
+Brief description of what this Go package/application does.
+
+## Installation
+
+```bash
+go install github.com/user/goproject@latest
+```
+
+Or add to your Go module:
+
+```bash
+go get github.com/user/goproject
+```
+
+## Usage
+
+### Basic Example
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+
+    "github.com/user/goproject"
+)
+
+func main() {
+    client := goproject.NewClient("api-key")
+
+    result, err := client.FetchData("query")
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Printf("Result: %+v\n", result)
+}
+```
+
+### Advanced Configuration
+
+```go
+config := &goproject.Config{
+    APIKey:     "your-key",
+    Timeout:    30 * time.Second,
+    MaxRetries: 3,
+}
+
+client := goproject.NewClientWithConfig(config)
+```
+
+## API Reference
+
+See `go doc github.com/user/goproject` for complete API documentation.
+
+### Key Types
+
+#### Client
+
+```go
+type Client struct {
+    // contains filtered or unexported fields
+}
+```
+
+Main client for interacting with the service.
+
+#### Config
+
+```go
+type Config struct {
+    APIKey     string
+    Timeout    time.Duration
+    MaxRetries int
+}
+```
+
+Configuration for Client initialization.
+
+## Go Documentation Best Practices
+
+**Guideline:** Follow Go documentation conventions for package comments,
+exported functions, and examples that work with `go doc`.
+
+### Go Package Documentation Examples
+
+**Package-level documentation:**
+
+```go
+// Package goproject provides a client for interacting with the Example API.
+//
+// This package offers a simple interface for fetching and processing data
+// from the Example service. It handles authentication, retries, and error
+// handling automatically.
+//
+// Basic usage:
+//
+//     client := goproject.NewClient("your-api-key")
+//     data, err := client.FetchData("search query")
+//     if err != nil {
+//         log.Fatal(err)
+//     }
+//
+// For advanced configuration, use NewClientWithConfig:
+//
+//     config := &goproject.Config{
+//         APIKey:     "your-key",
+//         Timeout:    30 * time.Second,
+//         MaxRetries: 3,
+//     }
+//     client := goproject.NewClientWithConfig(config)
+//
+package goproject
+```
+
+**Function documentation with examples:**
+
+```go
+// NewClient creates a new client with the provided API key.
+// The client uses default configuration values for timeout and retries.
+//
+// Example:
+//     client := NewClient("abc123")
+//     data, err := client.FetchData("golang")
+func NewClient(apiKey string) *Client {
+    return NewClientWithConfig(&Config{
+        APIKey:     apiKey,
+        Timeout:    10 * time.Second,
+        MaxRetries: 1,
+    })
+}
+
+// FetchData retrieves data based on the provided query.
+// It returns an error if the query is empty, the API key is invalid,
+// or if network/service errors occur.
+//
+// The query parameter supports standard search syntax including:
+//   - Simple terms: "golang"
+//   - Quoted phrases: "go programming language"
+//   - Boolean operators: "golang AND tutorial"
+//
+// Example:
+//     results, err := client.FetchData("golang tutorial")
+//     if err != nil {
+//         return fmt.Errorf("failed to fetch data: %w", err)
+//     }
+func (c *Client) FetchData(query string) ([]Result, error) {
+    // implementation
+}
+```
+
+**Testable examples:**
+
+```go
+// Example_basicUsage demonstrates basic client usage.
+func Example_basicUsage() {
+    client := goproject.NewClient("demo-key")
+
+    results, err := client.FetchData("golang")
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Printf("Found %d results\n", len(results))
+    // Output: Found 5 results
+}
+
+// ExampleClient_FetchData shows how to use FetchData with error handling.
+func ExampleClient_FetchData() {
+    client := goproject.NewClient("demo-key")
+
+    results, err := client.FetchData("go programming")
+    if err != nil {
+        log.Printf("Error: %v", err)
+        return
+    }
+
+    for _, result := range results {
+        fmt.Printf("Title: %s\n", result.Title)
+    }
+    // Output:
+    // Title: Go Programming Tutorial
+    // Title: Advanced Go Patterns
+}
+```
+
+## Go Project Documentation Structure
+
+**Guideline:** Create comprehensive README files and supporting documentation
+that follows Go community conventions and integrates with Go tooling.
+
+### README Structure for Go Projects
+
+**Recommended README.md for Go packages:**
+
+```markdown
+# goproject
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/user/goproject.svg)](https://pkg.go.dev/github.com/user/goproject)
+[![Go Report Card](https://goreportcard.com/badge/github.com/user/goproject)](https://goreportcard.com/report/github.com/user/goproject)
+[![Tests](https://github.com/user/goproject/actions/workflows/test.yml/badge.svg)](https://github.com/user/goproject/actions)
+
+One-line description of the Go package.
+
+## Features
+
+- Feature 1 with brief description
+- Feature 2 with brief description
+- Feature 3 with brief description
+
+## Installation
+
+```bash
+go get github.com/user/goproject
+```
+
+## Quick Start
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+
+    "github.com/user/goproject"
+)
+
+func main() {
+    client := goproject.NewClient("your-api-key")
+
+    result, err := client.DoSomething()
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Printf("Result: %+v\n", result)
+}
+```
+
+## Documentation
+
+- [API Reference](https://pkg.go.dev/github.com/user/goproject) (via pkg.go.dev)
+- [Examples](https://pkg.go.dev/github.com/user/goproject#pkg-examples)
+- [User Guide](docs/guide.md)
+
+## Command Line Usage
+
+If your project includes a CLI:
+
+```bash
+# Install the command
+go install github.com/user/goproject/cmd/goproject@latest
+
+# Basic usage
+goproject --help
+goproject process --input data.json --output results.json
+```
+
+## Contributing
+
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
+for details on our code of conduct and the process for submitting pull requests.
+
+### Development Setup
+
+```bash
+# Clone repository
+git clone https://github.com/user/goproject.git
+cd goproject
+
+# Download dependencies
+go mod download
+
+# Run tests
+go test ./...
+
+# Run tests with race detection
+go test -race ./...
+
+# Check documentation
+go doc ./...
+```
+
+## License
+
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+
+**CLI application README example:**
+
+```markdown
+# gotool
+
+A command-line tool for processing data files.
+
+## Installation
+
+### Using go install
+
+```bash
+go install github.com/user/gotool@latest
+```
+
+### Download Binary
+
+Download the latest release from the [releases page](https://github.com/user/gotool/releases).
+
+### Build from Source
+
+```bash
+git clone https://github.com/user/gotool.git
+cd gotool
+go build -o gotool ./cmd/gotool
+```
+
+## CLI Usage
+
+### Basic Commands
+
+```bash
+# Process a file
+gotool process input.json
+
+# Process with custom output
+gotool process --input data.csv --output results.json --format json
+
+# Get help for any command
+gotool help process
+```
+
+### Configuration
+
+Create a `config.yaml` file:
+
+```yaml
+api_key: "your-api-key"
+timeout: "30s"
+max_retries: 3
+output_format: "json"
+```
+
+Use with:
+
+```bash
+gotool --config config.yaml process data.csv
+```
+
+### Examples
+
+```bash
+# Process CSV file and output JSON
+gotool process --input data.csv --output results.json --format json
+
+# Process with custom API endpoint
+gotool process --api-url https://api.example.com/v2 data.json
+
+# Batch process multiple files
+gotool batch --pattern "*.csv" --output-dir ./results/
+```
+
+## Go Documentation Verification
+
+**Guideline:** Use Go's built-in tools to verify and maintain documentation
+quality alongside code changes.
+
+### Documentation Verification Examples
+
+**Using go doc to verify documentation:**
+
+```bash
+# Check package documentation
+go doc github.com/user/goproject
+
+# Check specific function documentation
+go doc github.com/user/goproject.NewClient
+
+# Check all exported functions
+go doc -all github.com/user/goproject
+
+# Generate documentation for local package
+go doc ./
+go doc -all ./
+```
+
+**Documentation testing with examples:**
+
+```go
+// example_test.go
+package goproject_test
+
+import (
+    "fmt"
+
+    "github.com/user/goproject"
+)
+
+// This example appears in go doc output and is tested with 'go test'
+func ExampleClient_Process() {
+    client := goproject.NewClient("demo")
+
+    result := client.Process("test input")
+    fmt.Println(result)
+    // Output: processed: test input
+}
+
+// Example with setup
+func ExampleNewClient() {
+    client := goproject.NewClient("api-key")
+
+    fmt.Printf("Client created with timeout: %v\n", client.Timeout())
+    // Output: Client created with timeout: 10s
+}
+```
+
+**Documentation validation in CI:**
+
+```yaml
+# .github/workflows/docs.yml
+name: Documentation
+
+on: [push, pull_request]
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Verify go doc works
+        run: |
+          go doc ./...
+
+      - name: Test examples
+        run: |
+          go test -run Example
+
+      - name: Check for undocumented exports
+        run: |
+          # Custom script to check documentation coverage
+          go run scripts/check-docs.go
+```
+
+## AI Assistant Collaboration
+
+**Guideline:** When working with an AI assistant on Go documentation,
+provide context about Go conventions, your package's purpose, and the
+target audience.
+
+### Go Documentation Collaboration Examples
+
+**Effective collaboration patterns:**
+
+- "I need to document this Go package that provides HTTP client functionality.
+  Can you help me write package-level documentation and function comments that
+  follow Go conventions and work well with go doc?"
+- "This Go CLI tool needs better documentation. Can you help me create a
+  comprehensive README with usage examples and a user guide that explains
+  all the command-line options?"
+- "I want to add testable examples to my Go package documentation. Can you
+  help me create Example functions that demonstrate the key features and
+  work correctly with go test?"
+
+**Include relevant context:**
+
+- Target audience (Go developers, CLI users, library consumers)
+- Package purpose (library, application, tool, framework)
+- Go version and module structure
+- Key interfaces and types that need documentation
+- Command-line interface design (if applicable)
+- Integration with Go tooling requirements (go doc, go test, etc.)
+- Existing documentation patterns and style preferences

@@ -1,51 +1,345 @@
----
-description: Testing guidelines and best practices
-globs: test/**/*,**/test_*.py,test*/**/*.py,test*/*.py,test/**/*.py
-alwaysApply: false
----
 
-# Testing Guidelines
+# Python Testing Guidelines
 
-## What to test
+**Rationale:** These guidelines promote comprehensive, maintainable test
+suites that provide confidence in code quality and catch regressions early.
+They emphasize practical testing strategies and pytest best practices.
 
-- Start with creating exercise tests, testing intended behavior of functions,
-  classes, and modules
-- Try to minimally mock so we ensure that we aren't creating passthrough
-  tests of no value
-- Once we have good exercise tests, then continue to create more tests for
-  common edge cases
+## Testing Strategy
 
-## Writing and refactoring tests
+**Guideline:** Start with behavior-driven tests that verify intended
+functionality, then expand to cover edge cases and error conditions.
 
-- ALWAYS check linting after modifying a file before going on to the next file
-- ALWAYS run tests for the specific file after modifying to ensure tests pass
-- IF you are in the middle of modifying multiple files or refactoring, it
-  may be okay that tests do not pass
+### Testing Strategy Examples
 
-## Test Structure & Organization
+**Test priorities:**
 
-- Write comprehensive tests for all new functionality
-- Use pytest fixtures appropriately
-- Aim for high test coverage
-- Test files should be named `test_*.py`
-- Use descriptive test function names that explain what is being tested
-- Tests should be placed in the `tests/` directory with matching structure to `pyconfig/`
+```python
+# 1. Start with happy path tests
+def test_user_login_success():
+    user = create_user("test@example.com", "password123")
+    result = login_service.authenticate(user.email, "password123")
+
+    assert result.success is True
+    assert result.user.email == "test@example.com"
+    assert result.session_token is not None
+
+# 2. Add common edge cases
+def test_user_login_invalid_password():
+    user = create_user("test@example.com", "password123")
+    result = login_service.authenticate(user.email, "wrong_password")
+
+    assert result.success is False
+    assert result.error == "Invalid credentials"
+    assert result.session_token is None
+
+# 3. Test error conditions
+def test_user_login_nonexistent_user():
+    result = login_service.authenticate("nonexistent@example.com", "password")
+
+    assert result.success is False
+    assert result.error == "User not found"
+```
+
+**Minimal mocking approach:**
+
+```python
+# Good: Mock only external dependencies
+@patch('myapp.email.send_notification')
+def test_user_registration_sends_welcome_email(mock_send):
+    user_service.register_user("test@example.com", "password123")
+
+    mock_send.assert_called_once()
+    call_args = mock_send.call_args[1]
+    assert call_args['to'] == "test@example.com"
+    assert "welcome" in call_args['subject'].lower()
+
+# Avoid: Over-mocking internal logic
+# This makes tests brittle and less valuable
+@patch('myapp.user.validate_email')  # Don't mock internal validation
+@patch('myapp.user.hash_password')   # Don't mock internal hashing
+def test_user_registration_overmocked(mock_hash, mock_validate):
+    # This test doesn't verify real behavior
+    pass
+```
+
+## Test Development Workflow
+
+**Guideline:** Develop tests incrementally with immediate feedback to catch
+issues early and maintain momentum.
+
+### Development Workflow Examples
+
+**Recommended workflow:**
+
+```bash
+# 1. Run tests for specific file while developing
+uv run pytest tests/test_auth.py -v
+
+# 2. Run with file watching for continuous feedback
+uv run pytest tests/test_auth.py --looponfail
+
+# 3. Check linting alongside testing
+uv run ruff check tests/test_auth.py
+uv run pytest tests/test_auth.py
+
+# 4. Run full test suite before committing
+uv run pytest tests/ --cov=src/
+```
+
+**Test-driven development example:**
+
+```python
+# 1. Write failing test first
+def test_calculate_discount_percentage():
+    # Arrange
+    cart = ShoppingCart()
+    cart.add_item("laptop", price=1000, quantity=1)
+
+    # Act
+    discount = cart.calculate_discount(coupon_code="SAVE10")
+
+    # Assert
+    assert discount.percentage == 10
+    assert discount.amount == 100
+
+# 2. Implement minimal code to make test pass
+class ShoppingCart:
+    def calculate_discount(self, coupon_code):
+        if coupon_code == "SAVE10":
+            return Discount(percentage=10, amount=100)
+        return Discount(percentage=0, amount=0)
+
+# 3. Refactor and add more test cases
+```
+
+## Test Structure and Organization
+
+**Guideline:** Organize tests to mirror your source code structure and use
+clear, descriptive names that explain the test's purpose.
+
+### Test Organization Examples
+
+**Directory structure:**
+
+```text
+myproject/
+├── src/
+│   └── myproject/
+│       ├── auth/
+│       │   ├── __init__.py
+│       │   └── service.py
+│       └── user/
+│           ├── __init__.py
+│           └── models.py
+└── tests/
+    ├── conftest.py
+    ├── auth/
+    │   ├── __init__.py
+    │   └── test_service.py
+    └── user/
+        ├── __init__.py
+        └── test_models.py
+```
+
+**Test naming and structure:**
+
+```python
+class TestUserService:
+    """Test class for user service functionality."""
+
+    def test_create_user_with_valid_data_succeeds(self):
+        """Creating a user with valid email and password should succeed."""
+        user = self.user_service.create_user(
+            email="test@example.com",
+            password="secure123",
+            name="Test User"
+        )
+
+        assert user.id is not None
+        assert user.email == "test@example.com"
+        assert user.name == "Test User"
+        assert user.password != "secure123"  # Should be hashed
+
+    def test_create_user_with_duplicate_email_raises_error(self):
+        """Creating a user with an already-used email should raise an error."""
+        # Arrange
+        self.user_service.create_user("test@example.com", "password1")
+
+        # Act & Assert
+        with pytest.raises(UserAlreadyExistsError) as exc_info:
+            self.user_service.create_user("test@example.com", "password2")
+
+        assert "already exists" in str(exc_info.value)
+```
 
 ## Test Best Practices
 
-- Use pytest for all testing
-- Group related tests into classes when appropriate
-- Use parametrized tests for testing multiple scenarios
-- Mock external dependencies appropriately
-- Test both success and failure cases
-- Include edge case testing
-- NEVER compare values to `True`, `False`, `None`, with equality comparisons
-  `==`, use `is` or a direct truth check as appropriate based on the test
-  content
+**Guideline:** Write clear, focused tests that use appropriate assertions and
+handle both success and failure scenarios effectively.
 
-## Fixtures & Setup
+### Testing Best Practices Examples
 
-- Use pytest fixtures for common test setup
-- Prefer session, module, or class scoped fixtures when appropriate
-- Keep fixtures focused and reusable
-- Use temporary directories for file-based tests
+**Effective assertions:**
+
+```python
+# Good: Use specific assertions
+def test_user_creation_sets_correct_attributes():
+    user = User.create("john@example.com", age=30)
+
+    # Use 'is' for singleton comparisons
+    assert user.active is True
+    assert user.deleted is False
+    assert user.admin is None
+
+    # Use direct boolean checks when appropriate
+    assert user.is_verified()  # Not: assert user.is_verified() == True
+
+    # Use 'is' for None checks
+    assert user.last_login is None
+
+    # Use equality for value comparisons
+    assert user.email == "john@example.com"
+    assert user.age == 30
+
+# Good: Test error conditions thoroughly
+def test_user_creation_with_invalid_email_raises_validation_error():
+    invalid_emails = [
+        "",
+        "notanemail",
+        "@example.com",
+        "user@",
+        "user space@example.com"
+    ]
+
+    for email in invalid_emails:
+        with pytest.raises(ValidationError) as exc_info:
+            User.create(email, age=25)
+
+        assert "email" in str(exc_info.value).lower()
+```
+
+**Parametrized testing:**
+
+```python
+@pytest.mark.parametrize("email,password,expected_valid", [
+    ("test@example.com", "strongpass123", True),
+    ("test@example.com", "weak", False),
+    ("invalid-email", "strongpass123", False),
+    ("", "strongpass123", False),
+    ("test@example.com", "", False),
+])
+def test_user_validation(email, password, expected_valid):
+    """Test user validation with various input combinations."""
+    if expected_valid:
+        user = User.create(email, password)
+        assert user.is_valid()
+    else:
+        with pytest.raises(ValidationError):
+            User.create(email, password)
+```
+
+## Fixtures and Test Setup
+
+**Guideline:** Use pytest fixtures strategically to share common setup code
+and manage test data lifecycle effectively.
+
+### Fixture Examples
+
+**Common fixture patterns:**
+
+```python
+# conftest.py
+@pytest.fixture
+def db_session():
+    """Provide a database session with rollback after test."""
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()
+
+@pytest.fixture
+def sample_user(db_session):
+    """Create a sample user for testing."""
+    user = User(
+        email="test@example.com",
+        name="Test User",
+        is_active=True
+    )
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+@pytest.fixture
+def temp_upload_dir():
+    """Provide a temporary directory for file upload tests."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield Path(temp_dir)
+
+# Using fixtures in tests
+def test_user_can_upload_profile_image(sample_user, temp_upload_dir):
+    """Test that a user can upload a profile image successfully."""
+    # Create a test image file
+    image_path = temp_upload_dir / "profile.jpg"
+    image_path.write_bytes(b"fake image data")
+
+    # Test the upload
+    result = sample_user.upload_profile_image(str(image_path))
+
+    assert result.success is True
+    assert sample_user.profile_image_url is not None
+```
+
+**Fixture scoping:**
+
+```python
+@pytest.fixture(scope="session")
+def app_config():
+    """Application configuration shared across all tests."""
+    return {
+        "database_url": "sqlite:///:memory:",
+        "debug": True,
+        "testing": True
+    }
+
+@pytest.fixture(scope="module")
+def expensive_setup():
+    """Setup that's expensive to create, share across module."""
+    # This runs once per test module
+    connection = create_expensive_connection()
+    yield connection
+    connection.close()
+
+@pytest.fixture(scope="function")  # Default scope
+def fresh_user():
+    """Create a fresh user for each test."""
+    return User(email=f"user{uuid.uuid4()}@example.com")
+```
+
+## AI Assistant Collaboration
+
+**Guideline:** When working with an AI assistant on testing, provide context
+about your testing goals, existing patterns, and the specific functionality
+being tested.
+
+### AI Collaboration Examples
+
+**Effective collaboration patterns:**
+
+- "I need to test this authentication service that uses JWT tokens and Redis
+  for session storage. Can you help me write tests that cover both happy path
+  and error scenarios?"
+- "This test is failing intermittently. Can you help me identify potential
+  race conditions or timing issues in the test setup?"
+- "I want to refactor these tests to be less brittle. Can you suggest better
+  mocking strategies that focus on testing behavior rather than implementation?"
+
+**Include relevant context:**
+
+- Testing framework and key testing libraries (pytest, factory-boy, etc.)
+- Database and external service dependencies
+- Current test coverage and problem areas
+- Specific edge cases or error conditions to consider
+- Performance requirements for test execution

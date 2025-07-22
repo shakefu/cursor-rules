@@ -1,45 +1,443 @@
----
-description: Documentation and markdown formatting guidelines
-globs: *.md,**/*.md,README*
-alwaysApply: false
----
 
-# Documentation Guidelines
+# Python Documentation Guidelines
 
-@Docs <https://github.github.com/gfm/>
+**Rationale:** These guidelines promote clear, consistent documentation that
+helps users understand and contribute to Python projects. They emphasize
+proper markdown formatting and comprehensive documentation practices.
 
-## Markdown Formatting
+## Markdown Formatting Standards
 
-- Keep all documentation files properly formatted
-- Run markdown linting before committing documentation changes
-  - ALWAYS use `pre-commit` for linting and formatting
-  - ALWAYS use `pre-commit run [--all-files | --files [FILES ...]] prettier`
-    to ensure markdown files conform to prettier's standards before running
-    markdown lint
-  - ALWAYS use `pre-commit run [--all-files | --files [FILES ...]] markdownlint-cli2`
-    hook for formatting a specific markdown file or all markdown files in the
-    repository
-  - IF AND ONLY IF `pre-commit` is not available as a command, `uv run pre-commit`
-    should be used as a fallback
-- Use proper markdown formatting:
-- Add blank lines before and after code blocks
-- Use proper heading hierarchy
-- Keep line length reasonable (88 characters)
-- Use proper list formatting with blank lines between list items
+**Guideline:** Use consistent markdown formatting and automated tools to
+maintain documentation quality and readability.
 
-## Documentation Standards
+### Formatting Examples
 
-- Keep README.md updated with new features
-- Document any breaking changes
-- Add docstrings to all public APIs
-- Follow the project's markdown style guide
-- Use pre-commit hooks to enforce markdown formatting
-- Check markdown files with `markdownlint-cli2` before committing
+**Pre-commit workflow for documentation:**
 
-## Content Guidelines
+```bash
+# Check markdown formatting before committing
+pre-commit run prettier --all-files
+pre-commit run markdownlint-cli2 --all-files
 
-- Write clear, concise documentation
-- Include code examples where helpful
-- Keep documentation up to date with code changes
-- Use consistent terminology throughout
-- Provide installation and usage instructions
+# Or for specific files
+pre-commit run prettier --files README.md docs/api.md
+pre-commit run markdownlint-cli2 --files README.md
+
+# If pre-commit isn't available globally
+uv run pre-commit run prettier --all-files
+```
+
+**Good markdown formatting practices:**
+
+```markdown
+# Project Title
+
+Brief description of what this project does.
+
+## Installation
+
+Install using pip:
+
+```bash
+pip install myproject
+```
+
+Or with uv:
+
+```bash
+uv add myproject
+```
+
+## Usage
+
+Here's a basic example:
+
+```python
+from myproject import MyClass
+
+# Create an instance
+my_instance = MyClass(config="development")
+
+# Use the instance
+result = my_instance.process_data(data)
+print(f"Result: {result}")
+```
+
+## API Reference
+
+### MyClass
+
+#### `__init__(config: str = "production")`
+
+Initialize the MyClass instance.
+
+**Parameters:**
+
+- `config` (str): Configuration mode. Options: "development", "production"
+
+**Example:**
+
+```python
+instance = MyClass(config="development")
+```
+
+#### `process_data(data: list) -> dict`
+
+Process the provided data and return results.
+
+**Parameters:**
+
+- `data` (list): Input data to process
+
+**Returns:**
+
+- `dict`: Processed results with keys 'status' and 'data'
+
+**Raises:**
+
+- `ValueError`: If data is empty or invalid
+
+**Example:**
+
+```python
+data = [1, 2, 3, 4, 5]
+result = instance.process_data(data)
+# Returns: {'status': 'success', 'data': [processed_items]}
+```
+
+## Python Documentation Best Practices
+
+**Guideline:** Create comprehensive documentation that covers installation,
+usage, API reference, and contribution guidelines for Python projects.
+
+### Documentation Structure Examples
+
+**Recommended README.md structure:**
+
+```markdown
+# ProjectName
+
+[![Tests](https://github.com/user/project/actions/workflows/test.yml/badge.svg)](https://github.com/user/project/actions)
+[![Coverage](https://codecov.io/gh/user/project/branch/main/graph/badge.svg)](https://codecov.io/gh/user/project)
+[![PyPI version](https://badge.fury.io/py/project.svg)](https://badge.fury.io/py/project)
+
+One-line description of the project.
+
+## Features
+
+- Feature 1 with brief description
+- Feature 2 with brief description
+- Feature 3 with brief description
+
+## Installation
+
+### Using pip
+```bash
+pip install project-name
+```
+
+### Using uv (recommended)
+
+```bash
+uv add project-name
+```
+
+### Development installation
+
+```bash
+git clone https://github.com/user/project.git
+cd project
+uv sync --dev
+```
+
+## Quick Start
+
+```python
+import project_name
+
+# Basic usage example
+client = project_name.Client()
+result = client.do_something()
+print(result)
+```
+
+## Documentation
+
+- [API Documentation](docs/api.md)
+- [User Guide](docs/guide.md)
+- [Contributing](CONTRIBUTING.md)
+
+## Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code
+of conduct and the process for submitting pull requests.
+
+## License
+
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+
+**API documentation example:**
+
+```markdown
+# API Reference
+
+## Core Classes
+
+### Client
+
+Main client class for interacting with the service.
+
+```python
+from myproject import Client
+
+client = Client(api_key="your-key", timeout=30)
+```
+
+### Methods
+
+#### `fetch_data(query: str, limit: int = 100) -> list[dict]`
+
+Fetch data based on the provided query.
+
+**Parameters:**
+
+- `query` (str): Search query string
+- `limit` (int, optional): Maximum number of results. Default: 100
+
+**Returns:**
+
+- `list[dict]`: List of result dictionaries
+
+**Example:**
+
+```python
+data = client.fetch_data("python packages", limit=50)
+for item in data:
+    print(f"Name: {item['name']}, Version: {item['version']}")
+```
+
+**Error Handling:**
+
+```python
+try:
+    data = client.fetch_data("invalid query")
+except ValueError as e:
+    print(f"Query error: {e}")
+except ConnectionError as e:
+    print(f"Network error: {e}")
+```
+
+## Content Quality Guidelines
+
+**Guideline:** Write documentation that is clear, accurate, and helpful for
+users at different skill levels with your Python project.
+
+### Content Examples
+
+**Good installation instructions:**
+
+```markdown
+## Installation
+
+### Requirements
+- Python 3.9 or higher
+- pip or uv package manager
+
+### Install from PyPI
+```bash
+# Using pip
+pip install myproject
+
+# Using uv (faster)
+uv add myproject
+```
+
+### Development Setup
+
+```bash
+# Clone repository
+git clone https://github.com/user/myproject.git
+cd myproject
+
+# Install with development dependencies
+uv sync --dev
+
+# Install pre-commit hooks
+uv run pre-commit install
+
+# Run tests to verify installation
+uv run pytest
+```
+
+### Troubleshooting
+
+#### ImportError: No module named 'myproject'
+
+- Ensure you're in the correct virtual environment
+- Try reinstalling: `pip uninstall myproject && pip install myproject`
+
+#### Tests failing on Windows
+
+- Some tests may require Unix-specific tools
+- Use WSL or skip platform-specific tests: `pytest -m "not unix"`
+
+**Effective code examples:**
+
+```markdown
+## Usage Examples
+
+### Basic Usage
+
+```python
+from myproject import DataProcessor
+
+# Initialize with default settings
+processor = DataProcessor()
+
+# Process some data
+data = [
+    {"name": "Alice", "age": 30},
+    {"name": "Bob", "age": 25},
+    {"name": "Charlie", "age": 35}
+]
+
+results = processor.filter_adults(data, min_age=25)
+print(f"Found {len(results)} adults")
+```
+
+### Advanced Configuration
+
+```python
+from myproject import DataProcessor, Config
+
+# Custom configuration
+config = Config(
+    min_age=21,
+    include_metadata=True,
+    output_format="json"
+)
+
+processor = DataProcessor(config=config)
+
+# Process with custom validation
+results = processor.process_batch(
+    data_batch,
+    validate=True,
+    callback=lambda x: print(f"Processed {x}")
+)
+```
+
+### Error Handling
+
+```python
+from myproject import DataProcessor, ValidationError
+
+processor = DataProcessor()
+
+try:
+    results = processor.process(invalid_data)
+except ValidationError as e:
+    print(f"Data validation failed: {e}")
+    # Handle validation error
+except Exception as e:
+    print(f"Unexpected error: {e}")
+    # Handle other errors
+```
+
+## Documentation Maintenance
+
+**Guideline:** Keep documentation synchronized with code changes and use
+automation to maintain quality standards.
+
+### Maintenance Examples
+
+**Documentation update workflow:**
+
+```bash
+# Before making code changes
+git checkout -b feature/new-api-endpoint
+
+# Update documentation alongside code
+# 1. Update docstrings in code
+# 2. Update README.md if needed
+# 3. Update API documentation
+# 4. Add usage examples
+
+# Verify documentation formatting
+uv run pre-commit run prettier --all-files
+uv run pre-commit run markdownlint-cli2 --all-files
+
+# Test that examples in documentation work
+uv run python docs/verify_examples.py
+
+# Commit code and documentation together
+git add .
+git commit -m "feat(api): add new endpoint with documentation"
+```
+
+**Documentation validation script example:**
+
+```python
+# docs/verify_examples.py
+"""Verify that code examples in documentation actually work."""
+
+import ast
+import re
+from pathlib import Path
+
+def extract_python_code_blocks(markdown_file):
+    """Extract Python code blocks from markdown file."""
+    content = Path(markdown_file).read_text()
+    pattern = r'```python\n(.*?)\n```'
+    return re.findall(pattern, content, re.DOTALL)
+
+def validate_python_syntax(code_blocks):
+    """Validate Python syntax for extracted code blocks."""
+    errors = []
+    for i, code in enumerate(code_blocks):
+        try:
+            ast.parse(code)
+        except SyntaxError as e:
+            errors.append(f"Code block {i+1}: {e}")
+    return errors
+
+if __name__ == "__main__":
+    readme_blocks = extract_python_code_blocks("README.md")
+    errors = validate_python_syntax(readme_blocks)
+
+    if errors:
+        print("Documentation has Python syntax errors:")
+        for error in errors:
+            print(f"  - {error}")
+        exit(1)
+    else:
+        print("All Python examples in documentation are valid!")
+```
+
+## AI Assistant Collaboration
+
+**Guideline:** When working with an AI assistant on documentation, provide
+context about your audience, project complexity, and documentation goals.
+
+### Documentation Collaboration Examples
+
+**Effective collaboration patterns:**
+
+- "I need to write API documentation for this Python library. The target
+  audience includes both beginner and advanced Python developers. Can you
+  help me create clear examples and comprehensive reference material?"
+- "This README is getting too long and cluttered. Can you help me reorganize
+  it with better structure and move detailed content to separate documentation
+  files?"
+- "I want to add code examples to my documentation that users can copy and
+  run. Can you help me create realistic, working examples that demonstrate
+  the key features?"
+
+**Include relevant context:**
+
+- Target audience (beginners, advanced developers, data scientists, etc.)
+- Project type (library, application, framework, CLI tool)
+- Key features and use cases to highlight
+- Existing documentation structure and style preferences
+- Integration with documentation tools (Sphinx, MkDocs, etc.)
+- Code examples that need to be included or updated

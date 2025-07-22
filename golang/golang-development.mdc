@@ -1,83 +1,362 @@
----
-description: Core Go development guidelines
-globs: *.go,**/*.go
-alwaysApply: false
----
 
 # Go Development Guidelines
 
-## Running Go commands
+**Rationale:** These guidelines promote maintainable, well-tested Go code
+using modern tooling and idiomatic Go practices. They emphasize proper error
+handling, concurrency patterns, and the standard Go development workflow.
 
-- Use standard Go toolchain commands
-  - Use `go run` for executing Go programs
-  - Use `go build` for building binaries
-  - Use `go test` for running tests (including Ginkgo tests)
-  - Use `go mod` for module management
+## Running Go Commands
 
-## Linting & Code Quality
+**Guideline:** Use the standard Go toolchain commands for consistent
+development experience and proper module integration.
 
-- ALWAYS use `golangci-lint run` to lint Go projects
-- Individual files can be linted using `golangci-lint run [OPTIONS] [FILES]...`
-- Use `go vet` for additional static analysis
-- ALWAYS run `gofmt` or `goimports` to format code
+### Command Usage Examples
 
-## Code Style & Formatting
+**Standard Go workflow:**
 
-- Go projects are formatted using `gofmt` or `goimports`
-- ALWAYS use `goimports` to automatically manage imports and format code
-- Follow Go conventions for naming:
-  - Use camelCase for unexported functions and variables
-  - Use PascalCase for exported functions and variables
-  - Use short, descriptive names
-  - Prefer single-letter names for short-lived variables in loops
-- ALWAYS write Go documentation comments for exported functions, types, and packages
-  - Follow Go doc conventions: start with the name of the item being documented
-  - ALWAYS describe possible edge cases, errors, and conditionals that
-    materially affect the behavior
-- Follow effective Go guidelines and Go Code Review Comments
-- Keep functions focused and single-purpose
+```bash
+# Run your application
+go run main.go
 
-## Project Structure
+# Build for production
+go build -o myapp ./cmd/myapp
 
-- This project uses Go modules for dependency management
-- Tests should be placed alongside source code with `_test.go` suffix
-- Use `go test` for all testing (including Ginkgo/Gomega tests)
-  - ALWAYS use the format `go test [options] [packages]` when running tests
-  - Use `go test ./...` to run all tests in the project
-- Follow standard Go project layout conventions
+# Run all tests
+go test ./...
 
-## Dependencies & Imports
+# Run tests with verbose output
+go test -v ./pkg/auth/...
 
-- Use `go mod` to manage dependencies via `go.mod`
-- Group imports: standard library, third-party, local imports (goimports
-  handles this automatically)
-- Use `go mod tidy` to clean up unused dependencies
-- Avoid circular imports
-- Use semantic import versioning for major version changes
+# Manage dependencies
+go mod tidy
+go mod download
+```
 
-## Error Handling
+**Module management:**
 
-- ALWAYS handle errors explicitly - never ignore them
-- Use specific error types and wrap errors with context using `fmt.Errorf`
-  with `%w` verb
-- Provide meaningful error messages
-- Handle edge cases gracefully
-- Prefer returning errors over panicking
-- Use `log` package instead of `fmt.Print*` for debugging/logging
+```bash
+# Initialize a new module
+go mod init github.com/yourorg/yourapp
 
-## Performance & Best Practices
+# Add a dependency
+go get github.com/gorilla/mux@v1.8.0
 
-- Use Go's built-in profiling tools when optimizing
-- Prefer channels and goroutines for concurrency
-- Be mindful of goroutine lifecycle and avoid leaks
-- Use context.Context for cancellation and timeouts
-- Avoid premature optimization but be mindful of performance
+# Update dependencies
+go get -u ./...
+```
 
-## AI Assistant Instructions
+## Code Quality and Formatting
 
-- Always suggest proper error handling when missing
-- Recommend tests when implementing new functionality
-- Point out potential race conditions or goroutine issues
-- Suggest more idiomatic Go approaches when applicable
-- Consider Go conventions and best practices
-- Suggest using interfaces for better testability
+**Guideline:** Use Go's built-in tooling along with golangci-lint for
+comprehensive code quality checks and consistent formatting.
+
+### Code Quality Examples
+
+**Linting and formatting workflow:**
+
+```bash
+# Format code and organize imports
+goimports -w .
+
+# Run comprehensive linting
+golangci-lint run
+
+# Run specific linters
+golangci-lint run --disable-all --enable=errcheck,gosimple,staticcheck
+
+# Static analysis with built-in tools
+go vet ./...
+```
+
+**Documentation example:**
+
+```go
+// UserService handles user-related operations and maintains user state.
+//
+// The service manages user authentication, profile updates, and session
+// handling. All operations are safe for concurrent use.
+//
+// Example usage:
+//     svc := NewUserService(db, logger)
+//     user, err := svc.GetUser(ctx, userID)
+//     if errors.Is(err, ErrUserNotFound) {
+//         // handle not found case
+//     }
+type UserService struct {
+    db     *sql.DB
+    logger *log.Logger
+}
+```
+
+## Project Structure and Testing
+
+**Guideline:** Follow Go's standard project layout and place tests alongside
+source code for easy maintenance and discovery.
+
+### Project Structure Examples
+
+**Standard Go project layout:**
+
+```text
+myproject/
+├── cmd/
+│   └── myapp/
+│       └── main.go
+├── internal/
+│   ├── auth/
+│   │   ├── handler.go
+│   │   └── handler_test.go
+│   └── user/
+│       ├── service.go
+│       └── service_test.go
+├── pkg/
+│   └── api/
+│       ├── client.go
+│       └── client_test.go
+├── go.mod
+└── go.sum
+```
+
+**Running tests:**
+
+```bash
+# Run all tests
+go test ./...
+
+# Run tests with coverage
+go test -cover ./...
+
+# Run specific package tests
+go test ./internal/auth
+
+# Run tests with race detection
+go test -race ./...
+
+# Run Ginkgo tests (if using)
+ginkgo -r --randomize-all --fail-on-pending
+```
+
+## Dependency Management
+
+**Guideline:** Use Go modules effectively to manage dependencies with
+semantic versioning and maintain clean, minimal dependency graphs.
+
+### Dependency Management Examples
+
+**Working with dependencies:**
+
+```bash
+# Add a specific version
+go get github.com/stretchr/testify@v1.8.4
+
+# Add latest patch version
+go get github.com/gin-gonic/gin@latest
+
+# Remove unused dependencies
+go mod tidy
+
+# Verify dependencies
+go mod verify
+
+# Update to latest compatible versions
+go get -u ./...
+```
+
+**Import organization (handled automatically by goimports):**
+
+```go
+// Standard library imports
+import (
+    "context"
+    "database/sql"
+    "fmt"
+    "log"
+)
+
+// Third-party imports
+import (
+    "github.com/gorilla/mux"
+    "github.com/stretchr/testify/assert"
+)
+
+// Local imports
+import (
+    "github.com/yourorg/yourapp/internal/auth"
+    "github.com/yourorg/yourapp/pkg/database"
+)
+```
+
+## Error Handling and Debugging
+
+**Guideline:** Handle errors explicitly and provide meaningful context to
+help with debugging and monitoring in production systems.
+
+### Error Handling Examples
+
+**Effective error handling:**
+
+```go
+func ProcessUserData(ctx context.Context, userID string) (*User, error) {
+    user, err := fetchUserFromDB(ctx, userID)
+    if err != nil {
+        if errors.Is(err, sql.ErrNoRows) {
+            return nil, fmt.Errorf("user %s not found: %w", userID, ErrUserNotFound)
+        }
+        return nil, fmt.Errorf("failed to fetch user %s from database: %w",
+            userID, err)
+    }
+
+    if err := validateUser(user); err != nil {
+        return nil, fmt.Errorf("user %s validation failed: %w", userID, err)
+    }
+
+    return user, nil
+}
+
+// Custom error types for better error handling
+var (
+    ErrUserNotFound = errors.New("user not found")
+    ErrInvalidInput = errors.New("invalid input")
+)
+```
+
+**Structured logging:**
+
+```go
+import "log/slog"
+
+logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+func handleRequest(ctx context.Context, req *Request) error {
+    logger.InfoContext(ctx, "processing request",
+        "request_id", req.ID,
+        "user_id", req.UserID,
+    )
+
+    if err := processRequest(req); err != nil {
+        logger.ErrorContext(ctx, "request processing failed",
+            "request_id", req.ID,
+            "error", err,
+        )
+        return fmt.Errorf("processing request %s: %w", req.ID, err)
+    }
+
+    return nil
+}
+```
+
+## Performance and Best Practices
+
+**Guideline:** Write clear, concurrent-safe code first, then optimize based
+on profiling results. Leverage Go's concurrency primitives effectively.
+
+### Performance Examples
+
+**Effective concurrency patterns:**
+
+```go
+// Worker pool pattern
+func processItems(ctx context.Context, items []Item) error {
+    const numWorkers = 10
+    jobs := make(chan Item, len(items))
+    results := make(chan error, len(items))
+
+    // Start workers
+    for i := 0; i < numWorkers; i++ {
+        go worker(ctx, jobs, results)
+    }
+
+    // Send jobs
+    for _, item := range items {
+        jobs <- item
+    }
+    close(jobs)
+
+    // Collect results
+    for i := 0; i < len(items); i++ {
+        if err := <-results; err != nil {
+            return fmt.Errorf("worker error: %w", err)
+        }
+    }
+
+    return nil
+}
+
+// Context with timeout
+func callExternalService(ctx context.Context) error {
+    ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+    defer cancel()
+
+    resp, err := http.Get("https://api.example.com/data")
+    if err != nil {
+        return fmt.Errorf("API call failed: %w", err)
+    }
+    defer resp.Body.Close()
+
+    // Process response...
+    return nil
+}
+```
+
+**Memory-efficient patterns:**
+
+```go
+// Use buffer pools for frequent allocations
+var bufferPool = sync.Pool{
+    New: func() interface{} {
+        return make([]byte, 4096)
+    },
+}
+
+func processLargeData(data []byte) error {
+    buf := bufferPool.Get().([]byte)
+    defer bufferPool.Put(buf)
+
+    // Use buf for processing...
+    return nil
+}
+
+// Use streaming for large datasets
+func processLargeFile(filename string) error {
+    file, err := os.Open(filename)
+    if err != nil {
+        return err
+    }
+    defer file.Close()
+
+    scanner := bufio.NewScanner(file)
+    for scanner.Scan() {
+        line := scanner.Text()
+        if err := processLine(line); err != nil {
+            return fmt.Errorf("processing line: %w", err)
+        }
+    }
+
+    return scanner.Err()
+}
+```
+
+## AI Assistant Collaboration
+
+**Guideline:** When working with an AI assistant on Go code, provide context
+about your specific use case, performance requirements, and architectural
+constraints.
+
+### AI Collaboration Examples
+
+**Effective collaboration patterns:**
+
+- "This HTTP handler needs to process file uploads up to 100MB. We're using
+  Gin framework and need proper error handling with structured logging."
+- "I'm seeing high memory usage in this goroutine pool. Can you suggest
+  optimizations while maintaining the current API interface?"
+- "This function works but isn't very idiomatic Go. Can you refactor it while
+  ensuring our existing tests still pass?"
+
+**Include relevant context:**
+
+- Go version and key dependencies (Gin, Echo, etc.)
+- Performance requirements or constraints
+- Concurrency requirements and patterns
+- Error handling and logging strategies
+- Existing architectural patterns in your codebase

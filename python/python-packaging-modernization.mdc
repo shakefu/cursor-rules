@@ -1,91 +1,566 @@
----
-description:
-globs:
-alwaysApply: false
----
-# Python Packaging Modernization
+# Python Packaging Modernization Guidelines
 
-## Converting setuptools to pyproject.toml
+**Rationale:** These guidelines promote modern Python packaging practices
+using `pyproject.toml` and contemporary build systems. They help create
+maintainable, distributable Python packages that follow current standards
+and work well with modern tooling like `uv`.
 
-When encountering legacy `setup.py` or `setup.cfg` files, convert them to
-modern `pyproject.toml` format following these guidelines:
+## Modern Package Structure
 
-### Build System Configuration
+**Guideline:** Use `pyproject.toml` as the single source of configuration
+for Python packages, replacing legacy `setup.py` and `setup.cfg` files.
 
-- Use `hatchling` as the build backend for compatibility with uv:
+### Package Structure Examples
+
+**Recommended project layout:**
+
+```text
+myproject/
+├── src/
+│   └── myproject/
+│       ├── __init__.py
+│       ├── core.py
+│       └── cli.py
+├── tests/
+│   ├── __init__.py
+│   └── test_core.py
+├── docs/
+│   ├── index.md
+│   └── api.md
+├── README.md
+├── LICENSE
+└── pyproject.toml
+```
+
+**Basic pyproject.toml structure:**
 
 ```toml
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-```
 
-### Project Section Ordering
-
-Follow the same field ordering as the root [pyproject.toml](mdc:pyproject.toml):
-
-```toml
 [project]
-name = "package-name"
+name = "myproject"
 version = "1.0.0"
-description = "Package description"
+description = "A modern Python project"
 readme = "README.md"
 license = "MIT"
 authors = [
-    {name = "Jacob Alheid", email = "shakefu@gmail.com"},
+    {name = "Your Name", email = "your.email@example.com"},
+]
+maintainers = [
+    {name = "Your Name", email = "your.email@example.com"},
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "dependency-name",
+    "requests>=2.28.0",
+    "click>=8.0.0",
+]
+keywords = ["cli", "automation", "productivity"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/user/myproject"
+Documentation = "https://myproject.readthedocs.io"
+Repository = "https://github.com/user/myproject.git"
+Issues = "https://github.com/user/myproject/issues"
+Changelog = "https://github.com/user/myproject/blob/main/CHANGELOG.md"
+
+[project.scripts]
+myproject = "myproject.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
 ]
 ```
 
-### Section Ordering
+## Build System Configuration
 
-Organize sections in this order:
+**Guideline:** Choose appropriate build backends based on your project's
+complexity and requirements, with modern alternatives preferred over
+legacy setuptools.
 
-1. `[project]` - All project metadata
-2. `[project.entry-points.*]` - Entry points configuration
-3. `[dependency-groups]` - Optional dependency groups (if needed)
-4. `[build-system]` - Build system configuration
-5. `[tool.*]` - Tool-specific configurations
+### Build Backend Examples
 
-### Entry Points Migration
+**Hatchling (recommended for most projects):**
 
-Convert setuptools entry points format:
+```toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Configure dynamic versioning
+[tool.hatch.version]
+path = "src/myproject/__init__.py"
+
+# Or use git tags for versioning
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/myproject/_version.py"
+```
+
+**Poetry (alternative with lock files):**
+
+```toml
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "myproject"
+version = "1.0.0"
+description = "A modern Python project"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+packages = [{include = "myproject", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+requests = "^2.28.0"
+click = "^8.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0.0"
+ruff = "^0.1.0"
+```
+
+**Setuptools (legacy, but sometimes needed):**
+
+```toml
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "myproject"
+dynamic = ["version"]
+
+[tool.setuptools.dynamic]
+version = {attr = "myproject.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["myproject*"]
+```
+
+## Legacy Migration Patterns
+
+**Guideline:** Systematically migrate from legacy packaging configurations
+to modern `pyproject.toml` while preserving all functionality.
+
+### Migration Examples
+
+**Converting from setup.py:**
 
 ```python
 # OLD setup.py
-entry_points={
-    "console_scripts": ["cmd = module:function"],
-    "group_name": ["key = module"],
-}
+from setuptools import setup, find_packages
+
+setup(
+    name="myproject",
+    version="1.0.0",
+    author="Your Name",
+    author_email="your.email@example.com",
+    description="A Python project",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
+    url="https://github.com/user/myproject",
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
+    python_requires=">=3.9",
+    install_requires=[
+        "requests>=2.28.0",
+        "click>=8.0.0",
+    ],
+    extras_require={
+        "dev": ["pytest>=7.0.0", "ruff>=0.1.0"],
+        "docs": ["mkdocs>=1.5.0"],
+    },
+    entry_points={
+        "console_scripts": [
+            "myproject=myproject.cli:main",
+        ],
+    },
+)
 ```
 
-To modern toml format:
+**Equivalent modern pyproject.toml:**
 
 ```toml
-[project.scripts]
-cmd = "module:function"
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[project.entry-points.group_name]
-key = "module"
+[project]
+name = "myproject"
+version = "1.0.0"
+description = "A Python project"
+readme = "README.md"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"},
+]
+requires-python = ">=3.9"
+license = "MIT"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "requests>=2.28.0",
+    "click>=8.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/user/myproject"
+
+[project.scripts]
+myproject = "myproject.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "ruff>=0.1.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/myproject"]
 ```
 
-### Dependency Declaration
+**Converting setup.cfg:**
 
-- Always declare dependencies explicitly in the `dependencies` array
-- Use appropriate version constraints
-- For the pyconfig project, ensure `pyconfig` is listed as a dependency for
-  test packages
+```ini
+# OLD setup.cfg
+[metadata]
+name = myproject
+version = 1.0.0
+author = Your Name
+author_email = your.email@example.com
+description = A Python project
+long_description = file: README.md
+long_description_content_type = text/markdown
+url = https://github.com/user/myproject
+classifiers =
+    Programming Language :: Python :: 3
+    License :: OSI Approved :: MIT License
 
-### Author Information
+[options]
+package_dir =
+    = src
+packages = find:
+python_requires = >=3.9
+install_requires =
+    requests>=2.28.0
+    click>=8.0.0
 
-- Always use the same author information as the root project
-- Match the exact format from [pyproject.toml](mdc:pyproject.toml)
+[options.packages.find]
+where = src
 
-### File Cleanup
+[options.entry_points]
+console_scripts =
+    myproject = myproject.cli:main
+```
 
-- After creating `pyproject.toml`, delete the old `setup.py` file
-- Remove any `setup.cfg` files if present
-- Ensure no legacy configuration files remain
+### Modern equivalent (same as above pyproject.toml example)
+
+## Package Types and Configurations
+
+**Guideline:** Configure your package appropriately based on its type and
+intended use, with specific patterns for libraries, applications, and
+development tools.
+
+### Package Type Examples
+
+**Pure Python library:**
+
+```toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mylib"
+version = "1.0.0"
+description = "A reusable Python library"
+readme = "README.md"
+authors = [
+    {name = "Library Author", email = "author@example.com"},
+]
+requires-python = ">=3.9"
+license = "MIT"
+dependencies = [
+    "pydantic>=2.0.0",
+    "httpx>=0.24.0",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Documentation = "https://mylib.readthedocs.io"
+Repository = "https://github.com/user/mylib"
+Issues = "https://github.com/user/mylib/issues"
+
+# No scripts section - this is a library
+```
+
+**CLI application:**
+
+```toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mycli"
+version = "1.0.0"
+description = "A command-line application"
+readme = "README.md"
+authors = [
+    {name = "CLI Author", email = "author@example.com"},
+]
+requires-python = ">=3.9"
+license = "MIT"
+dependencies = [
+    "click>=8.0.0",
+    "rich>=13.0.0",
+    "typer>=0.9.0",
+]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Utilities",
+]
+
+[project.scripts]
+mycli = "mycli.main:app"
+myapp = "mycli.app:main"
+
+[project.urls]
+Homepage = "https://github.com/user/mycli"
+Issues = "https://github.com/user/mycli/issues"
+```
+
+**Namespace package:**
+
+```toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mycompany-utils-core"
+version = "1.0.0"
+description = "Core utilities for MyCompany namespace"
+readme = "README.md"
+authors = [
+    {name = "MyCompany", email = "dev@mycompany.com"},
+]
+requires-python = ">=3.9"
+dependencies = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mycompany"]
+
+# Directory structure:
+# src/
+#   mycompany/
+#     utils/
+#       core/
+#         __init__.py
+#         module.py
+# (No __init__.py in mycompany/ or mycompany/utils/)
+```
+
+## Advanced Packaging Features
+
+**Guideline:** Use advanced packaging features like dynamic versioning,
+custom build hooks, and plugin systems when appropriate for your project's
+needs.
+
+### Advanced Feature Examples
+
+**Dynamic versioning from git:**
+
+```toml
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "myproject"
+dynamic = ["version"]
+description = "Project with git-based versioning"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/myproject/_version.py"
+```
+
+**Custom build configuration:**
+
+```toml
+[build-system]
+requires = ["hatchling", "hatch-fancy-pypi-readme"]
+build-backend = "hatchling.build"
+
+[project]
+name = "myproject"
+dynamic = ["readme"]
+
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+fragments = [
+  { path = "README.md" },
+  { path = "CHANGELOG.md", start-after = "<!-- changelog -->" },
+]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/.github",
+  "/docs",
+  "/tests",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/myproject"]
+```
+
+**Plugin system configuration:**
+
+```toml
+[project.entry-points."myproject.plugins"]
+builtin_plugin = "myproject.plugins.builtin:BuiltinPlugin"
+example_plugin = "myproject.plugins.example:ExamplePlugin"
+
+[project.entry-points."console_scripts"]
+myproject = "myproject.cli:main"
+
+# This allows other packages to extend your application
+# Other packages can define their own:
+# [project.entry-points."myproject.plugins"]
+# their_plugin = "their_package.plugin:TheirPlugin"
+```
+
+## Migration Workflow
+
+**Guideline:** Follow a systematic approach when migrating legacy Python
+packages to modern packaging standards.
+
+### Migration Process Examples
+
+**Step-by-step migration:**
+
+```bash
+# 1. Backup existing configuration
+cp setup.py setup.py.backup
+cp setup.cfg setup.cfg.backup  # if it exists
+
+# 2. Create new pyproject.toml
+touch pyproject.toml
+
+# 3. Test the new configuration
+uv build
+uv run python -c "import myproject; print(myproject.__version__)"
+
+# 4. Verify all functionality works
+uv run pytest
+uv run myproject --help  # if it's a CLI
+
+# 5. Clean up old files (after verification)
+rm setup.py setup.py.backup
+rm setup.cfg setup.cfg.backup  # if it existed
+rm MANIFEST.in  # if it existed
+
+# 6. Update CI/CD to use uv build instead of python setup.py
+```
+
+**Validation checklist:**
+
+```bash
+# Verify package builds correctly
+uv build
+
+# Check package contents
+tar -tzf dist/myproject-*.tar.gz | head -20
+unzip -l dist/myproject-*.whl
+
+# Test installation in clean environment
+uv venv test-env
+uv pip install --index-url https://test.pypi.org/simple/ myproject==1.0.0
+
+# Verify all entry points work
+myproject --version
+python -c "from myproject import main_function; main_function()"
+
+# Check metadata
+uv pip show myproject
+```
+
+## AI Assistant Collaboration
+
+**Guideline:** When working with an AI assistant on Python packaging,
+provide context about your project structure, distribution requirements,
+and target deployment environments.
+
+### Packaging Collaboration Examples
+
+**Effective collaboration patterns:**
+
+- "I need to modernize this Python package that currently uses setup.py.
+  It's a CLI tool with optional dependencies for database support. Can you
+  help me create a comprehensive pyproject.toml configuration?"
+- "This package needs to support both PyPI distribution and internal company
+  distribution. Can you help me set up the packaging configuration to handle
+  both scenarios?"
+- "I want to set up dynamic versioning from git tags for this library. Can
+  you help me configure the build system and CI pipeline to handle releases
+  automatically?"
+
+**Include relevant context:**
+
+- Package type (library, CLI application, namespace package)
+- Distribution targets (PyPI, private registry, internal use)
+- Version management strategy (manual, git tags, CI-driven)
+- Build requirements and custom build steps
+- Optional dependencies and feature groups
+- Python version support requirements
+- Existing packaging configuration that needs migration
