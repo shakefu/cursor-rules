@@ -1,94 +1,600 @@
----
-description: Go module management and project structure best practices
-globs:
-alwaysApply: false
----
-# Go Module Management
+# Go Module Management Guidelines
+
+**Rationale:** These guidelines promote effective Go module management
+using modern Go tooling and best practices. They help create maintainable,
+well-structured Go projects that follow community conventions and work
+seamlessly with the Go ecosystem.
 
 ## Modern Go Module Structure
 
-All Go projects should use Go modules with a properly structured `go.mod`
-file following these guidelines:
+**Guideline:** Use Go modules with clear module paths and appropriate
+project structure that reflects the intended use and scope of your Go
+project.
 
-### Module Declaration
+### Module Structure Examples
 
-- Use descriptive module paths that reflect the repository location:
-
-```go
-module github.com/username/repository-name
-```
-
-### Go Version Declaration
-
-- Always specify the minimum Go version required:
-
-```go
-go 1.21
-```
-
-### Dependency Management
-
-- Use `go mod tidy` to manage dependencies automatically
-- Pin major versions appropriately using semantic import versioning
-- Use `replace` directives only when necessary for local development
-
-### Module Structure Best Practices
-
-Follow standard Go project layout:
+**Standard Go project layout:**
 
 ```text
-project/
-├── go.mod
-├── go.sum
-├── README.md
-├── main.go (for command-line tools)
-├── pkg/           (for library packages)
-├── internal/      (for private packages)
-├── cmd/           (for multiple commands)
-└── testdata/      (for test fixtures)
+myproject/
+├── go.mod                 # Module definition and dependencies
+├── go.sum                 # Dependency checksums
+├── README.md              # Project documentation
+├── LICENSE                # License file
+├── Makefile              # Build automation (optional)
+├── main.go               # Main entry point (for applications)
+├── cmd/                  # Command-line applications
+│   ├── server/
+│   │   └── main.go
+│   └── client/
+│       └── main.go
+├── internal/             # Private application code
+│   ├── auth/
+│   │   ├── auth.go
+│   │   └── auth_test.go
+│   └── config/
+│       ├── config.go
+│       └── config_test.go
+├── pkg/                  # Public library code
+│   ├── api/
+│   │   ├── client.go
+│   │   └── client_test.go
+│   └── models/
+│       ├── user.go
+│       └── user_test.go
+├── api/                  # API definitions (OpenAPI, protobuf)
+│   └── v1/
+│       └── api.proto
+├── web/                  # Web assets (if applicable)
+│   ├── static/
+│   └── templates/
+├── docs/                 # Additional documentation
+├── scripts/              # Build and deployment scripts
+├── testdata/             # Test fixtures and data
+└── deployments/          # Deployment configurations
+    └── docker/
+        └── Dockerfile
 ```
 
-### Dependency Versioning
+**Basic go.mod structure:**
 
-- Use semantic versioning for your modules
-- Follow Go's compatibility promise
-- Use `go get` to add dependencies
-- Use `go mod tidy` to clean up unused dependencies
-- Review `go.sum` changes in version control
+```go
+module github.com/user/myproject
 
-### Module Commands
+go 1.21
 
-Common module management commands:
+require (
+    github.com/gin-gonic/gin v1.9.1
+    github.com/stretchr/testify v1.8.4
+    golang.org/x/crypto v0.14.0
+)
+
+require (
+    // Indirect dependencies managed automatically
+    github.com/bytedance/sonic v1.9.1 // indirect
+    github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
+    golang.org/x/net v0.10.0 // indirect
+    golang.org/x/sys v0.13.0 // indirect
+    // ... other indirect dependencies
+)
+```
+
+## Module Initialization and Configuration
+
+**Guideline:** Initialize Go modules with descriptive paths and appropriate
+Go versions, following Go's module naming conventions.
+
+### Module Initialization Examples
+
+**Creating new modules:**
 
 ```bash
-go mod init <module-path>    # Initialize new module
-go mod tidy                  # Add missing and remove unused modules
-go mod download              # Download modules to local cache
-go mod verify                # Verify dependencies
-go get <package>             # Add or update dependency
-go get <package>@version     # Get specific version
-go list -m all               # List all modules
+# Initialize a new module
+mkdir myproject && cd myproject
+go mod init github.com/user/myproject
+
+# For private/internal modules
+go mod init company.com/internal/myservice
+
+# For personal projects
+go mod init github.com/yourusername/myproject
+
+# For organization modules
+go mod init github.com/myorg/myproject
 ```
 
-### Best Practices
+**Module path conventions:**
 
-- Keep `go.mod` and `go.sum` in version control
-- Use meaningful module paths that reflect ownership
-- Avoid `replace` directives in production code
-- Use internal packages for code that shouldn't be imported externally
-- Follow semantic versioning for your own modules
-- Use `go mod vendor` only when necessary
+```go
+// Public modules (will be published)
+module github.com/user/public-library
 
-### Version Control Integration
+// Private company modules
+module company.com/internal/service-name
 
-- Always commit both `go.mod` and `go.sum` files
-- Review dependency changes in pull requests
-- Use `go mod tidy` before committing to ensure clean dependencies
-- Consider using dependency scanning tools for security
+// Subdirectory modules (for monorepos)
+module github.com/user/monorepo/service-a
 
-### Module Publishing
+// Version 2+ modules (major version in path)
+module github.com/user/myproject/v2
+```
 
-- Tag releases with semantic version tags (e.g., v1.0.0)
-- Use `go mod` commands to ensure compatibility
-- Follow Go's module versioning guidelines
-- Consider backward compatibility when making changes
+**Go version specification:**
+
+```go
+// Specify minimum Go version
+module github.com/user/myproject
+
+go 1.21  // Requires Go 1.21 or later
+
+// Or for broader compatibility
+go 1.20  // Supports Go 1.20+
+
+// Latest features
+go 1.22  // Uses Go 1.22 features
+```
+
+## Dependency Management
+
+**Guideline:** Manage dependencies effectively using Go's built-in module
+commands while maintaining clean, secure, and up-to-date dependency graphs.
+
+### Dependency Management Examples
+
+**Adding and updating dependencies:**
+
+```bash
+# Add a new dependency (latest version)
+go get github.com/gin-gonic/gin
+
+# Add specific version
+go get github.com/gin-gonic/gin@v1.9.1
+
+# Add pre-release version
+go get github.com/gin-gonic/gin@v1.10.0-beta.1
+
+# Update all dependencies to latest minor/patch versions
+go get -u ./...
+
+# Update specific dependency
+go get -u github.com/gin-gonic/gin
+
+# Downgrade to specific version
+go get github.com/gin-gonic/gin@v1.8.0
+
+# Add development/testing tools
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+```
+
+**Dependency cleanup and maintenance:**
+
+```bash
+# Clean up unused dependencies and add missing ones
+go mod tidy
+
+# Verify all dependencies
+go mod verify
+
+# Download dependencies to local cache
+go mod download
+
+# Show dependency graph
+go mod graph | head -20
+
+# List all modules with versions
+go list -m all
+
+# Check for available updates
+go list -u -m all
+
+# Remove a dependency (after removing from code)
+go mod tidy  # This removes unused dependencies automatically
+```
+
+**go.mod file management:**
+
+```go
+module github.com/user/myproject
+
+go 1.21
+
+require (
+    // Core dependencies
+    github.com/gin-gonic/gin v1.9.1
+    github.com/stretchr/testify v1.8.4
+
+    // Database
+    gorm.io/gorm v1.25.5
+    gorm.io/driver/postgres v1.5.4
+
+    // Utilities
+    golang.org/x/crypto v0.14.0
+    golang.org/x/time v0.4.0
+)
+
+// Local development overrides
+replace github.com/user/internal-lib => ../internal-lib
+
+// Exclude known problematic versions
+exclude (
+    github.com/example/badversion v1.2.3
+    github.com/another/broken v2.0.0
+)
+
+require (
+    // Indirect dependencies (managed automatically by go mod tidy)
+    github.com/bytedance/sonic v1.9.1 // indirect
+    // ... other indirect dependencies
+)
+```
+
+## Advanced Module Features
+
+**Guideline:** Leverage advanced Go module features like workspaces,
+replace directives, and private modules when appropriate for complex
+development scenarios.
+
+### Advanced Module Examples
+
+**Go workspaces for multi-module development:**
+
+```go
+// go.work (in repository root)
+go 1.21
+
+use (
+    ./service-a
+    ./service-b
+    ./shared-lib
+)
+
+// Optional: replace directives at workspace level
+replace github.com/user/shared-lib => ./shared-lib
+```
+
+**Workspace usage:**
+
+```bash
+# Initialize workspace
+go work init ./service-a ./service-b
+
+# Add module to workspace
+go work use ./new-service
+
+# Sync workspace
+go work sync
+
+# Run commands in workspace context
+go test ./...  # Tests all modules in workspace
+go build ./... # Builds all modules
+```
+
+**Private module configuration:**
+
+```bash
+# Configure private module access
+export GOPRIVATE="company.com/internal/*,github.com/myorg/private-*"
+export GONOPROXY="company.com/internal/*"
+export GONOSUMDB="company.com/internal/*"
+
+# Or configure via git for private GitHub repos
+git config --global url."git@github.com:".insteadOf "https://github.com/"
+
+# Configure .netrc for private module authentication
+# ~/.netrc
+machine github.com
+login yourusername
+password your_personal_access_token
+```
+
+**Replace directives for development:**
+
+```go
+module github.com/user/main-service
+
+go 1.21
+
+require (
+    github.com/user/shared-lib v1.0.0
+    github.com/user/utils v0.5.0
+)
+
+// Local development - point to local directories
+replace (
+    github.com/user/shared-lib => ../shared-lib
+    github.com/user/utils => ../utils
+)
+
+// Fork replacement
+replace github.com/upstream/package => github.com/user/forked-package v1.0.1
+
+// Temporary fix replacement
+replace github.com/broken/package => github.com/user/fixed-package v1.0.0-fixed
+```
+
+## Module Versioning and Releases
+
+**Guideline:** Follow semantic versioning and Go's module versioning
+conventions to create stable, predictable releases that maintain
+backwards compatibility.
+
+### Versioning Examples
+
+**Semantic versioning tags:**
+
+```bash
+# Initial release
+git tag v1.0.0
+git push origin v1.0.0
+
+# Patch release (bug fixes)
+git tag v1.0.1
+git push origin v1.0.1
+
+# Minor release (new features, backwards compatible)
+git tag v1.1.0
+git push origin v1.1.0
+
+# Major release (breaking changes)
+git tag v2.0.0
+git push origin v2.0.0
+
+# Pre-release versions
+git tag v1.1.0-beta.1
+git tag v1.1.0-rc.1
+git tag v2.0.0-alpha.1
+```
+
+**Major version handling (v2+):**
+
+```go
+// For v2.0.0+, update go.mod module path
+module github.com/user/myproject/v2
+
+go 1.21
+
+// Consumers import with version suffix:
+// import "github.com/user/myproject/v2/pkg/api"
+```
+
+**Release workflow example:**
+
+```bash
+#!/bin/bash
+# scripts/release.sh
+
+VERSION=${1:-}
+if [ -z "$VERSION" ]; then
+    echo "Usage: $0 <version>"
+    echo "Example: $0 v1.2.0"
+    exit 1
+fi
+
+echo "🔍 Running pre-release checks..."
+go mod tidy
+go mod verify
+go test ./...
+go vet ./...
+
+echo "📋 Creating release tag: $VERSION"
+git tag $VERSION
+git push origin $VERSION
+
+echo "📦 Creating GitHub release..."
+gh release create $VERSION --generate-notes
+
+echo "✅ Release $VERSION complete!"
+```
+
+## Module Publishing and Distribution
+
+**Guideline:** Prepare modules for distribution with proper documentation,
+examples, and metadata that help users understand and adopt your module.
+
+### Publishing Examples
+
+**Module documentation structure:**
+
+```go
+// Package mylib provides utilities for data processing and analysis.
+//
+// This package offers a simple API for common data operations including
+// filtering, transformation, and aggregation. It's designed to be
+// lightweight and performant for both small and large datasets.
+//
+// Basic usage:
+//
+//     processor := mylib.NewProcessor()
+//     result, err := processor.Transform(data, mylib.Options{
+//         FilterEmpty: true,
+//         SortBy:      "name",
+//     })
+//
+// For more advanced usage, see the examples in the documentation.
+package mylib
+```
+
+**Module metadata and examples:**
+
+```bash
+# Create comprehensive documentation
+mkdir -p docs examples
+
+# Add examples that users can run
+cat > examples/basic/main.go << 'EOF'
+package main
+
+import (
+    "fmt"
+    "log"
+
+    "github.com/user/mylib"
+)
+
+func main() {
+    processor := mylib.NewProcessor()
+    result, err := processor.Process([]string{"hello", "world"})
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("Result: %v\n", result)
+}
+EOF
+
+# Add runnable example tests
+cat > example_test.go << 'EOF'
+package mylib_test
+
+import (
+    "fmt"
+
+    "github.com/user/mylib"
+)
+
+func Example() {
+    processor := mylib.NewProcessor()
+    result, _ := processor.Process([]string{"hello", "world"})
+    fmt.Printf("Processed: %v\n", result)
+    // Output: Processed: [HELLO WORLD]
+}
+EOF
+```
+
+**CI/CD for module releases:**
+
+```yaml
+# .github/workflows/release.yml
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Verify module
+        run: |
+          go mod verify
+          go mod tidy
+          git diff --exit-code
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          files: |
+            README.md
+            LICENSE
+```
+
+## Module Maintenance and Security
+
+**Guideline:** Maintain modules with regular updates, security scanning,
+and clear contribution guidelines to ensure long-term project health.
+
+### Maintenance Examples
+
+**Regular maintenance tasks:**
+
+```bash
+#!/bin/bash
+# scripts/maintenance.sh
+
+echo "🔍 Checking for security vulnerabilities..."
+go install golang.org/x/vuln/cmd/govulncheck@latest
+govulncheck ./...
+
+echo "📦 Checking for outdated dependencies..."
+go list -u -m all
+
+echo "🧹 Cleaning up dependencies..."
+go mod tidy
+go mod verify
+
+echo "🎯 Running quality checks..."
+golangci-lint run
+go vet ./...
+go test -race ./...
+
+echo "📊 Generating reports..."
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out -o coverage.html
+
+echo "✅ Maintenance complete!"
+```
+
+**Security and dependency scanning:**
+
+```yaml
+# .github/workflows/security.yml
+name: Security Scan
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Weekly on Mondays
+  push:
+    branches: [main]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run Govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      - name: Run Gosec Security Scanner
+        uses: securecodewarrior/github-action-gosec@master
+        with:
+          args: './...'
+```
+
+## AI Assistant Collaboration
+
+**Guideline:** When working with an AI assistant on Go module management,
+provide context about your project structure, dependency requirements,
+and distribution goals.
+
+### Module Management Collaboration Examples
+
+**Effective collaboration patterns:**
+
+- "I need to restructure this Go project into multiple modules within a
+  monorepo. Can you help me design the module boundaries and set up a
+  Go workspace configuration?"
+- "This Go module has complex dependency requirements including private
+  repositories. Can you help me configure the module and CI/CD pipeline
+  to handle authentication and private module access?"
+- "I want to publish this Go library as a reusable module. Can you help
+  me set up proper versioning, documentation, and release automation?"
+
+**Include relevant context:**
+
+- Project architecture (monorepo, single module, microservices)
+- Dependency requirements and constraints
+- Private vs public module distribution needs
+- Go version support requirements
+- CI/CD platform and automation preferences
+- Team development workflow and contribution guidelines
+- Performance or compatibility constraints
+- Security and compliance requirements

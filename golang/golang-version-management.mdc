@@ -1,73 +1,482 @@
----
-description: Version checking and dependency management best practices for Go
-globs:
-alwaysApply: false
----
 
-# Version Management Best Practices
+# Go Version Management Guidelines
 
-## General Principles
+**Rationale:** These guidelines promote secure, up-to-date Go projects by
+establishing clear processes for managing Go versions, module dependencies,
+and development tool versions using Go's built-in tooling and best practices.
 
-- Always check for the latest versions of dependencies and GitHub Actions
-- Never guess or use potentially outdated versions
-- Always verify versions from official repositories
-- Keep GitHub Actions and their versions up to date
-- Use Go modules for dependency management
+## Go Version Management
 
-## Version Checking Commands
+**Guideline:** Use consistent Go version management strategies across
+development, testing, and production environments to ensure compatibility
+and reproducible builds.
 
-Use the following commands to find latest versions:
+### Go Version Examples
+
+**Specifying Go versions in go.mod:**
+
+```go
+module github.com/user/myproject
+
+go 1.21
+
+require (
+    github.com/gin-gonic/gin v1.9.1
+    github.com/stretchr/testify v1.8.4
+)
+
+require (
+    // indirect dependencies automatically managed
+    github.com/bytedance/sonic v1.9.1 // indirect
+    github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
+    // ... other indirect dependencies
+)
+```
+
+**Using Go version managers for local development:**
 
 ```bash
-# For GitHub-hosted projects
-gh release list --repo <owner>/<repo> --limit 1
+# Using g (Go version manager)
+g install 1.21.5
+g use 1.21.5
+g list
 
-# For GitHub Actions specifically
-gh api repos/<owner>/<repo>/releases/latest
+# Using gvm (alternative Go version manager)
+gvm install go1.21.5
+gvm use go1.21.5 --default
 
-# For GitHub Actions versions
-gh api repos/<owner>/<repo>/tags
+# Verify active version
+go version  # Should show go version go1.21.5
+```
 
-# For Go modules, check available versions
-go list -m -versions <module>
+**GitHub Actions matrix for multiple Go versions:**
 
-# Check what version is currently used
-go list -m <module>
+```yaml
+strategy:
+  matrix:
+    go-version: ['1.20', '1.21', '1.22']
+    include:
+      # Test against latest stable
+      - go-version: 'stable'
+      # Test against previous stable
+      - go-version: 'oldstable'
+  fail-fast: false
 ```
 
 ## Go Module Dependency Management
 
-- Use `go mod tidy` to manage Go module dependencies
-- Keep `go.mod` and `go.sum` up to date with version constraints
-- Regularly update dependencies to latest compatible versions:
+**Guideline:** Use Go modules effectively to manage dependencies with
+proper version constraints, regular updates, and security considerations.
 
-  ```bash
-  go get -u ./...  # Update all dependencies
-  go get -u <module>@latest  # Update specific module
-  ```
+### Module Management Examples
 
-- Use dependency scanning tools when available
-- Document version requirements clearly in documentation
+**Adding and updating dependencies:**
 
-## Go Version Management
+```bash
+# Add a new dependency
+go get github.com/gin-gonic/gin@v1.9.1
 
-- Use Go version managers like `g` or `gvm` for local development
-- Specify minimum Go version in `go.mod` file
-- Keep Go version up to date with latest stable releases
-- Test against multiple Go versions in CI when supporting older versions
+# Add latest version
+go get github.com/stretchr/testify@latest
 
-## Security Considerations
+# Add specific version or commit
+go get github.com/gorilla/mux@v1.8.0
+go get github.com/example/repo@abc123def
 
-- Use commit hashes for GitHub Actions instead of version tags
-- Include version tags as comments for reference
-- Regularly audit dependencies for security vulnerabilities using
-  `go mod tidy` and security scanners
-- Keep all tooling and dependencies updated
-- Review `go.sum` changes for unexpected modifications
+# Update specific dependency
+go get -u github.com/gin-gonic/gin
 
-## Module Versioning
+# Update all dependencies to latest minor/patch versions
+go get -u ./...
 
-- Follow semantic versioning for your own Go modules
-- Use version tags (v1.0.0, v2.0.0, etc.) for releases
-- Consider Go's compatibility promise when versioning
-- Use major version suffixes for breaking changes (v2, v3, etc.)
+# Update all dependencies to latest major versions (use carefully)
+go get -u=patch ./...  # Only patch versions
+```
+
+**Dependency cleanup and maintenance:**
+
+```bash
+# Clean up unused dependencies
+go mod tidy
+
+# Verify dependencies and check for modifications
+go mod verify
+
+# Download dependencies without building
+go mod download
+
+# View dependency graph
+go mod graph | head -20
+
+# Check what version is currently in use
+go list -m github.com/gin-gonic/gin
+
+# Check available versions
+go list -m -versions github.com/gin-gonic/gin
+```
+
+**Version pinning and constraints:**
+
+```go
+// go.mod - Different dependency management strategies
+
+module myproject
+
+go 1.21
+
+require (
+    // Pin to specific version for stability
+    github.com/gin-gonic/gin v1.9.1
+
+    // Use latest patch version
+    github.com/stretchr/testify v1.8.4
+
+    // Development tools - can be more flexible
+    golang.org/x/tools v0.15.0
+
+    // Replace directive for local development
+    github.com/myorg/internal-lib v0.0.0-00010101000000-000000000000
+)
+
+// Replace for local development or forks
+replace github.com/myorg/internal-lib => ../internal-lib
+
+// Exclude problematic versions
+exclude github.com/example/badversion v1.2.3
+```
+
+## Go Module Versioning and Releases
+
+**Guideline:** Follow Go's semantic versioning conventions and module
+versioning practices for your own modules and when consuming dependencies.
+
+### Module Versioning Examples
+
+**Creating and managing releases:**
+
+```bash
+# Tag a new release (semantic versioning)
+git tag v1.0.0
+git push origin v1.0.0
+
+# For major version 2+ (breaking changes)
+git tag v2.0.0
+git push origin v2.0.0
+
+# Pre-release versions
+git tag v1.1.0-beta.1
+git push origin v1.1.0-beta.1
+
+# Check what versions are published
+go list -m -versions github.com/youruser/yourmodule
+```
+
+**Major version handling:**
+
+```go
+// For v2+ modules, update module path in go.mod
+module github.com/user/myproject/v2
+
+go 1.21
+
+// Consumers will import as:
+// import "github.com/user/myproject/v2"
+```
+
+**Module proxy and checksum database:**
+
+```bash
+# Set module proxy (usually automatic)
+export GOPROXY=https://proxy.golang.org,direct
+export GOSUMDB=sum.golang.org
+
+# Disable for private modules
+export GOPRIVATE=github.com/myorg/*
+
+# Check module info from proxy
+go list -m -json github.com/gin-gonic/gin@v1.9.1
+
+# Verify module authenticity
+go mod verify
+```
+
+## Version Discovery and Auditing
+
+**Guideline:** Use Go tools and external services to discover dependency
+updates, security vulnerabilities, and compatibility issues.
+
+### Version Discovery Examples
+
+**Checking for updates and security issues:**
+
+```bash
+# Check for available updates
+go list -u -m all
+
+# Check for security vulnerabilities
+go install golang.org/x/vuln/cmd/govulncheck@latest
+govulncheck ./...
+
+# Check module information
+go list -m -json github.com/gin-gonic/gin
+
+# Check what imports a dependency
+go mod why github.com/gin-gonic/gin
+
+# View full dependency tree
+go mod graph
+```
+
+**Dependency analysis tools:**
+
+```bash
+# Install Go module analysis tools
+go install github.com/psampaz/go-mod-outdated@latest
+go install github.com/oligot/go-mod-upgrade@latest
+
+# Check for outdated dependencies
+go list -u -m -json all | go-mod-outdated -update -direct
+
+# Interactive dependency updates
+go-mod-upgrade
+```
+
+**GitHub dependabot configuration:**
+
+```yaml
+# .github/dependabot.yml
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Group Go toolchain updates
+    groups:
+      go-toolchain:
+        patterns:
+          - "golang.org/x/*"
+          - "go.uber.org/*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+```
+
+## Security and Maintenance Practices
+
+**Guideline:** Implement regular security audits and maintenance practices
+to keep Go projects secure and dependencies up-to-date.
+
+### Security Maintenance Examples
+
+**Regular maintenance script:**
+
+```bash
+#!/bin/bash
+# scripts/update-deps.sh
+set -e
+
+echo "🔍 Checking for outdated dependencies..."
+go list -u -m all
+
+echo "🧹 Cleaning up go.mod..."
+go mod tidy
+
+echo "🔒 Checking for security vulnerabilities..."
+govulncheck ./...
+
+echo "✅ Running tests with current dependencies..."
+go test ./... -race
+
+echo "📊 Dependency verification..."
+go mod verify
+
+echo "📋 Generating dependency report..."
+go list -m -json all > dependencies.json
+
+echo "✨ Maintenance complete!"
+```
+
+**CI security and dependency checking:**
+
+```yaml
+# .github/workflows/security.yml
+name: Security & Dependencies
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run weekly on Sundays
+    - cron: '0 0 * * 0'
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Check for vulnerabilities
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      - name: Check for outdated dependencies
+        run: |
+          go list -u -m all
+
+      - name: Test with race detection
+        run: go test -race ./...
+```
+
+**Automated dependency updates:**
+
+```bash
+# Makefile targets for dependency management
+.PHONY: update-deps check-deps audit-deps
+
+update-deps:
+ @echo "Updating dependencies..."
+ go get -u ./...
+ go mod tidy
+ go test ./...
+
+check-deps:
+ @echo "Checking for outdated dependencies..."
+ go list -u -m all
+
+audit-deps:
+ @echo "Running security audit..."
+ govulncheck ./...
+ go mod verify
+```
+
+## Go Build and Version Information
+
+**Guideline:** Embed version information in Go binaries for deployment
+tracking and debugging purposes.
+
+### Version Embedding Examples
+
+**Build-time version injection:**
+
+```go
+// version/version.go
+package version
+
+import "runtime/debug"
+
+var (
+    // Set via ldflags during build
+    Version   = "dev"
+    GitCommit = "unknown"
+    BuildTime = "unknown"
+    GoVersion = "unknown"
+)
+
+// GetInfo returns version information
+func GetInfo() Info {
+    info := Info{
+        Version:   Version,
+        GitCommit: GitCommit,
+        BuildTime: BuildTime,
+        GoVersion: GoVersion,
+    }
+
+    // Try to get build info from runtime
+    if buildInfo, ok := debug.ReadBuildInfo(); ok {
+        info.GoVersion = buildInfo.GoVersion
+        for _, setting := range buildInfo.Settings {
+            switch setting.Key {
+            case "vcs.revision":
+                if GitCommit == "unknown" {
+                    info.GitCommit = setting.Value
+                }
+            case "vcs.time":
+                if BuildTime == "unknown" {
+                    info.BuildTime = setting.Value
+                }
+            }
+        }
+    }
+
+    return info
+}
+
+type Info struct {
+    Version   string `json:"version"`
+    GitCommit string `json:"git_commit"`
+    BuildTime string `json:"build_time"`
+    GoVersion string `json:"go_version"`
+}
+```
+
+**Build script with version injection:**
+
+```bash
+#!/bin/bash
+# scripts/build.sh
+
+VERSION=${VERSION:-$(git describe --tags --always --dirty)}
+COMMIT=$(git rev-parse HEAD)
+BUILD_TIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+GO_VERSION=$(go version | cut -d' ' -f3)
+
+LDFLAGS=(
+  "-X 'myproject/version.Version=${VERSION}'"
+  "-X 'myproject/version.GitCommit=${COMMIT}'"
+  "-X 'myproject/version.BuildTime=${BUILD_TIME}'"
+  "-X 'myproject/version.GoVersion=${GO_VERSION}'"
+)
+
+go build -ldflags="${LDFLAGS[*]}" -o myproject ./cmd/myproject
+```
+
+## AI Assistant Collaboration
+
+**Guideline:** When working with an AI assistant on Go version management,
+provide context about your module structure, dependency constraints, and
+Go version requirements.
+
+### Go Version Management Collaboration Examples
+
+**Effective collaboration patterns:**
+
+- "I need to update the Go modules in this project, but we need to maintain
+  compatibility with Go 1.20. Can you help me create an update strategy that
+  respects this constraint while improving security?"
+- "This Go project is failing to build after a dependency update, with
+  conflicts in the go.sum file. Can you help me diagnose and resolve the
+  module dependency issues?"
+- "I want to set up automated dependency updates for this Go microservice.
+  Can you help me configure Dependabot with appropriate versioning strategies?"
+
+**Include relevant context:**
+
+- Go version constraints and minimum supported versions
+- Module structure and internal dependency relationships
+- Security requirements and vulnerability scanning needs
+- Build and deployment pipeline configuration
+- Team policies for dependency updates and semantic versioning
+- Performance or compatibility constraints with specific dependencies

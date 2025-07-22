@@ -1,72 +1,294 @@
----
-description: Git version control guidelines for Go projects
-globs:
-alwaysApply: true
----
 
 # Version Control Guidelines
 
-These rules describe how to use `git` version control and should be used
-whenever working with version control.
+**Rationale:** These guidelines promote clean, maintainable git history
+using Conventional Commits and best practices. They help teams collaborate
+effectively and make project history easier to understand and navigate.
 
-## Pre-commit linting and formatting
+## Pre-commit Integration
 
-- This project uses pre-commit hooks - they will be run on commit.
-- IF there are errors, sometimes they are fixed automatically, and need to
-  be re-added to the staged changes.
-- IF the errors are not fixed automatically, do not attempt to fix them, STOP.
+**Guideline:** Work with pre-commit hooks as part of your development workflow
+to maintain consistent code quality and formatting.
 
-## Commit Message Standards
+### Pre-commit Workflow Examples
 
-- **Always use Conventional Commits for all commit messages** following the
-  specification at <https://www.conventionalcommits.org/en/v1.0.0/>
-- Use the format: `<type>(scope): <description>` - **scope is required**
-- Use the following conventional commit common types:
-  - Common types: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`
-  - Use `!` or `BREAKING CHANGE:` footer for breaking changes
-  - Keep commits focused and atomic
-- The scope should reflect the portion of the package that was modified,
-  for example if your module is `github.com/user/gotool`:
-  - If modifying the module root or main package, use the package name as
-    scope: `gotool`
-  - If modifying `pkg/utils/helpers.go`, use scope `utils`
-  - If modifying `internal/parser/parser.go`, use scope `parser`
-  - If modifying multiple packages, use the most relevant or common scope
-- Changes to GitHub Actions files should use the type `ci`.
-- Changes to repository configuration files such as `pre-commit-config.yaml`,
-  should use the type `chore`.
-- Changes to the Cursor rules files should use the type `chore` with the scope `cursor`.
-- Changes to `go.mod` or `go.sum` should use the type `chore` with scope `deps`.
+**Typical pre-commit workflow:**
 
-## Commit Organization
+```bash
+# 1. Stage your changes
+git add internal/auth/handler.go internal/auth/handler_test.go
 
-- **Group changes into small logical commits** - instead of making one large
-  commit with multiple bullet points in the message, break changes into
-  separate commits where each commit represents a single logical change or
-  feature addition/fix
+# 2. Attempt to commit (pre-commit hooks run automatically)
+git commit -m "feat(auth): add JWT token validation"
 
-## Examples
+# 3. If hooks make changes, review and re-add them
+git add .  # Add any auto-fixed changes
+git commit -m "feat(auth): add JWT token validation"
 
-- `feat(cli): add new CLI command for file processing`
-- `fix(parser): handle empty input files correctly`
-- `docs(readme): update README with installation instructions`
-- `chore(deps): update go dependencies`
+# 4. If hooks report errors that aren't auto-fixed:
+# - Review the error messages
+# - Fix the issues manually
+# - Stage the fixes and commit again
+```
 
-## Best Practices
+**When pre-commit hooks fail:**
 
-- Keep commits focused and atomic
-- Write clear, descriptive commit messages
-- Reference issues when applicable
-- Use present tense in commit messages
+```bash
+# Example: golangci-lint finds issues
+$ git commit -m "feat(auth): add new login handler"
+golangci-lint run........................................................Failed
+- hook id: golangci-lint
+- exit code: 1
 
-## Extra CLI commands for git
+# Fix the issues first, then commit
+golangci-lint run --fix
+git add internal/auth/handler.go
+git commit -m "feat(auth): add new login handler"
+```
 
-This section describes extra commands that should be used in preference of the
-default commands.
+## Conventional Commit Standards
 
-- INSTEAD OF `git commit -m "[message]"` use `gcom "[message]"` to commit changes.
-- INSTEAD OF `git diff --cached` use `gsta | cat` to view all of the staged
-  changes without pager interference.
-- INSTEAD OF `git diff` use `gdiff | cat` to view unstaged changes.
-- Use `gundo` to revert a commit automatically that was wrong.
-- Use `gunstage` to unstage changes that should not have been added.
+**Guideline:** Use Conventional Commits to create consistent, informative
+commit messages that clearly communicate the nature and scope of changes.
+
+### Commit Message Examples
+
+**Effective commit message structure:**
+
+```bash
+# Format: <type>(scope): <description>
+
+# Feature additions
+feat(auth): add JWT token validation with expiry checks
+feat(cli): implement file processing command with progress bar
+feat(api): add user profile handler with image upload support
+
+# Bug fixes
+fix(parser): handle empty JSON files without panicking
+fix(auth): prevent session hijacking in concurrent requests
+fix(validation): correct email regex to handle international domains
+
+# Documentation
+docs(readme): add installation instructions for Go 1.21+
+docs(api): update authentication examples with new token format
+docs(contributing): clarify testing requirements and setup
+
+# Refactoring
+refactor(database): extract connection pooling into separate package
+refactor(auth): simplify user validation logic using interfaces
+
+# Tests
+test(auth): add integration tests for password reset flow
+test(parser): add edge cases for malformed input files
+
+# Maintenance
+chore(deps): update go.mod dependencies to latest versions
+chore(cursor): update Go development guidelines
+chore(ci): add Go 1.22 to test matrix
+```
+
+**Scope selection examples:**
+
+```go
+// For Go project structure like:
+gotool/
+├── cmd/
+│   └── gotool/
+│       └── main.go          // scope: cli or cmd
+├── internal/
+│   ├── auth/
+│   │   ├── handler.go       // scope: auth
+│   │   └── service.go       // scope: auth
+│   ├── parser/
+│   │   └── json.go          // scope: parser
+│   └── utils/
+│       └── helpers.go       // scope: utils
+├── pkg/
+│   └── client/
+│       └── client.go        // scope: client
+├── go.mod                   // scope: deps
+├── go.sum                   // scope: deps
+└── README.md               // scope: docs
+
+// Example commits for this structure:
+git commit -m "feat(auth): add OAuth2 provider integration"
+git commit -m "fix(parser): resolve JSON parsing edge case with nested objects"
+git commit -m "test(client): add tests for HTTP client retry logic"
+git commit -m "chore(deps): update gin-gonic/gin to v1.9.1"
+git commit -m "refactor(utils): extract logging configuration to separate package"
+```
+
+## Commit Organization and Best Practices
+
+**Guideline:** Create focused, atomic commits that tell a clear story of your
+project's evolution and make it easier to review, understand, and maintain.
+
+### Commit Organization Examples
+
+**Good commit organization:**
+
+```bash
+# Instead of one large commit:
+# ❌ "feat(app): add user system with auth, validation, and tests"
+
+# Break into logical commits:
+# ✅ Series of focused commits:
+git commit -m "feat(models): add User struct with basic fields and validation"
+git commit -m "feat(auth): implement user registration and login handlers"
+git commit -m "feat(middleware): add JWT authentication middleware"
+git commit -m "test(auth): add comprehensive user authentication tests"
+git commit -m "docs(auth): document authentication API endpoints"
+```
+
+**Atomic commit examples:**
+
+```bash
+# Good: Single logical change
+feat(api): add pagination to user list endpoint
+
+# Good: Clear bug fix
+fix(auth): prevent duplicate user registration with same email
+
+# Avoid: Multiple unrelated changes
+# ❌ "feat(api): add pagination, fix auth bug, update deps"
+
+# Better: Separate commits
+feat(api): add pagination to user list endpoint
+fix(auth): prevent duplicate user registration with same email
+chore(deps): update go.mod dependencies
+```
+
+**Breaking changes:**
+
+```bash
+# Option 1: Use ! indicator
+feat(auth)!: change user ID from int to uuid.UUID
+
+# Option 2: Use BREAKING CHANGE footer
+feat(auth): change user ID from int to uuid.UUID
+
+BREAKING CHANGE: User IDs are now UUIDs instead of integers.
+Update any code that assumes numeric user IDs and imports the uuid package.
+```
+
+**Go-specific commit types:**
+
+```bash
+# Dependency management
+chore(deps): update go.mod dependencies to latest versions
+chore(deps): add github.com/stretchr/testify v1.8.4
+chore(deps): remove unused dependency on old logging library
+
+# Go module changes
+feat(module): initialize go.mod for new microservice
+refactor(module): restructure internal packages for better organization
+chore(module): update module path after repository rename
+```
+
+## Git Command Best Practices
+
+**Guideline:** Use git commands effectively to maintain clean history and
+efficient workflow, whether using standard commands or helpful aliases.
+
+### Git Workflow Examples
+
+**Standard git workflow:**
+
+```bash
+# Check current status
+git status
+
+# Stage specific changes
+git add internal/auth/handler.go
+git add internal/auth/handler_test.go
+
+# Review staged changes before committing
+git diff --cached
+
+# Commit with conventional message
+git commit -m "feat(auth): add two-factor authentication support"
+
+# View recent commits
+git log --oneline -10
+```
+
+**Go-specific workflow patterns:**
+
+```bash
+# After running go mod tidy
+git add go.mod go.sum
+git commit -m "chore(deps): update dependencies and remove unused modules"
+
+# After adding new dependency
+go get github.com/gin-gonic/gin@v1.9.1
+git add go.mod go.sum
+git commit -m "chore(deps): add gin framework for HTTP routing"
+
+# After running gofmt/goimports
+goimports -w .
+git add .
+git commit -m "style: format code with goimports"
+```
+
+**Helpful git aliases (if available):**
+
+```bash
+# Many developers use aliases for common operations:
+# If you have shell aliases configured:
+gcom "feat(auth): add JWT validation"  # Instead of git commit -m
+gsta | cat                             # Instead of git diff --cached
+gdiff | cat                           # Instead of git diff
+gundo                                 # To undo last commit
+gunstage                              # To unstage files
+
+# Standard git equivalents:
+git commit -m "feat(auth): add JWT validation"
+git diff --cached | cat
+git diff | cat
+git reset HEAD~1                      # Undo last commit
+git reset HEAD <file>                 # Unstage specific file
+```
+
+**Reviewing and fixing commits:**
+
+```bash
+# Before pushing, review your commit history
+git log --oneline -5
+
+# If you need to fix the last commit message:
+git commit --amend -m "feat(auth): add JWT validation with proper error handling"
+
+# If you need to add files to the last commit (like go.sum):
+git add go.sum
+git commit --amend --no-edit
+
+# Interactive rebase for more complex history editing (use carefully):
+git rebase -i HEAD~3  # Edit last 3 commits
+```
+
+## AI Assistant Collaboration
+
+**Guideline:** When working with an AI assistant on git workflows, provide
+context about your Go project structure, commit history goals, and any
+specific conventions your team follows.
+
+### Git Collaboration Examples
+
+**Effective collaboration patterns:**
+
+- "I need to restructure these commits before pushing. Can you help me
+  organize these Go module changes into logical, atomic commits following
+  Conventional Commits format?"
+- "This commit message doesn't clearly describe the change. Can you suggest
+  a better conventional commit message for adding gRPC service endpoints?"
+- "I accidentally included both feature code and dependency updates in this
+  commit. How can I split them into separate commits?"
+
+**Include relevant context:**
+
+- Your Go project's package structure (cmd/, internal/, pkg/) for scope selection
+- Team conventions for commit organization and module management
+- Whether you're working with microservices or monolithic architecture
+- Any specific conventional commit types your project uses (like grpc, proto)
+- Integration with tools like semantic-release or goreleaser
+- Go version and module management practices

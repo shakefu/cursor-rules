@@ -1,49 +1,341 @@
----
-description: GitHub Actions security and best practices
-globs: [".github/workflows/*.yml", ".github/workflows/*.yaml", ".github/workflows/**/*.yml", ".github/workflows/**/*.yaml"]
-alwaysApply: false
----
 
 # GitHub Actions Guidelines
 
+**Rationale:** These guidelines promote secure, efficient CI/CD workflows
+for Python projects. They emphasize security best practices, effective
+caching strategies, and comprehensive testing across multiple Python versions.
+
 ## Security Best Practices
 
-- **Always use commit hashes for GitHub Actions** instead of version tags
-  - This prevents supply chain attacks by ensuring we're using exact versions
-  - Include the version tag as a comment for reference
-  - Example: `uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4`
+**Guideline:** Use commit hashes instead of version tags to prevent supply
+chain attacks and ensure reproducible builds.
 
-## Version Management
+### Security Examples
 
-- Keep actions up to date with their latest stable versions
-- Use caching where appropriate to speed up workflows
-- Follow security best practices for GitHub Actions
-
-## Version Checking Commands
-
-Use these commands to find latest versions:
-
-```bash
-# For GitHub-hosted projects
-gh release list --repo <owner>/<repo> --limit 1
-
-# For GitHub Actions specifically
-gh api repos/<owner>/<repo>/releases/latest
-
-# For GitHub Actions versions
-gh api repos/<owner>/<repo>/tags
-```
-
-## Best Practices
-
-- Never guess or use potentially outdated versions
-- Always verify versions from official repositories
-- Keep GitHub Actions and their versions up to date
-- Use commit hashes for GitHub Actions instead of version tags
-- Include version tags as comments for reference
-
-Example format:
+**Secure action references:**
 
 ```yaml
-uses: owner/repo@commit_hash # v1.2.3
+name: CI
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # ✅ Good: Use commit hash with version comment
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5
+        with:
+          python-version: '3.11'
+
+      # ❌ Avoid: Version tags can be moved to malicious commits
+      # - uses: actions/checkout@v4
+      # - uses: actions/setup-python@v5
 ```
+
+**Finding commit hashes for actions:**
+
+```bash
+# Method 1: Using GitHub CLI
+gh api repos/actions/checkout/releases/latest
+gh api repos/actions/setup-python/releases/latest
+
+# Method 2: Check the releases page directly
+# Visit: https://github.com/actions/checkout/releases
+# Copy the commit hash from the latest release
+
+# Method 3: Using git commands
+git ls-remote --tags https://github.com/actions/checkout.git
+```
+
+## Python CI/CD Workflow Patterns
+
+**Guideline:** Create comprehensive workflows that test across multiple
+Python versions, cache dependencies effectively, and provide clear feedback.
+
+### Complete Workflow Examples
+
+**Basic Python testing workflow:**
+
+```yaml
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+        exclude:
+          # Skip some combinations to reduce CI time
+          - os: windows-latest
+            python-version: '3.9'
+          - os: macos-latest
+            python-version: '3.9'
+
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@fabd8d2e3274818d94cdaa393e02a7e5d67ed156 # v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras --dev
+
+      - name: Lint with ruff
+        run: |
+          uv run ruff check --output-format=github .
+          uv run ruff format --check .
+
+      - name: Type check with mypy
+        run: |
+          uv run mypy src/
+
+      - name: Run tests with coverage
+        run: |
+          uv run pytest --cov=src --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: true
+```
+
+**Advanced workflow with caching and artifacts:**
+
+```yaml
+name: Advanced CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@fabd8d2e3274818d94cdaa393e02a7e5d67ed156 # v3
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Run linting
+        run: |
+          uv run ruff check --output-format=github .
+          uv run ruff format --check .
+          uv run mypy src/
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@fabd8d2e3274818d94cdaa393e02a7e5d67ed156 # v3
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Run tests
+        run: uv run pytest -v --tb=short
+
+      - name: Generate test report
+        uses: dorny/test-reporter@afe6793191b75b608954023a46831a3fe10048d4 # v1
+        if: success() || failure()
+        with:
+          name: Test Results (Python ${{ matrix.python-version }})
+          path: pytest-results.xml
+          reporter: java-junit
+
+  build:
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@fabd8d2e3274818d94cdaa393e02a7e5d67ed156 # v3
+
+      - name: Build package
+        run: uv build
+
+      - name: Store build artifacts
+        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8
+          # v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@81e9d935c883d0b210363ab89cf05f3894778450
+          # v1.8.14
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+```
+
+## Caching and Performance Optimization
+
+**Guideline:** Use appropriate caching strategies to speed up workflows and
+reduce resource usage while maintaining reliability.
+
+### Caching Examples
+
+**Dependency caching with uv:**
+
+```yaml
+- name: Install uv
+  uses: astral-sh/setup-uv@fabd8d2e3274818d94cdaa393e02a7e5d67ed156 # v3
+  with:
+    enable-cache: true
+    cache-dependency-glob: "uv.lock"
+
+# uv handles caching automatically when enable-cache: true
+- name: Install dependencies
+  run: uv sync --dev
+```
+
+**Manual pip caching (if not using uv):**
+
+```yaml
+- name: Cache pip packages
+  uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4
+  with:
+    path: ~/.cache/pip
+    key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+    restore-keys: |
+      ${{ runner.os }}-pip-
+
+- name: Install dependencies
+  run: |
+    pip install -r requirements.txt
+```
+
+**Pre-commit cache:**
+
+```yaml
+- name: Cache pre-commit
+  uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4
+  with:
+    path: ~/.cache/pre-commit
+    key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+- name: Run pre-commit
+  run: pre-commit run --all-files
+```
+
+## Version Management and Updates
+
+**Guideline:** Keep actions updated and use tools to manage action versions
+systematically across your workflows.
+
+### Version Management Examples
+
+**Using Dependabot for action updates:**
+
+```yaml
+# .github/dependabot.yml
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+```
+
+**Finding and updating action versions:**
+
+```bash
+# Script to find latest action versions
+#!/bin/bash
+
+# Function to get latest commit hash for a GitHub action
+get_latest_action_hash() {
+    local repo=$1
+    local tag=$2
+    gh api repos/$repo/git/ref/tags/$tag --jq '.object.sha'
+}
+
+# Examples
+echo "actions/checkout@$(get_latest_action_hash actions/checkout v4) # v4"
+echo "actions/setup-python@$(get_latest_action_hash actions/setup-python v5) # v5"
+```
+
+## AI Assistant Collaboration
+
+**Guideline:** When working with an AI assistant on GitHub Actions, provide
+context about your project's testing requirements, security constraints, and
+deployment targets.
+
+### GitHub Actions Collaboration Examples
+
+**Effective collaboration patterns:**
+
+- "I need a GitHub Actions workflow for a Python package that tests on
+  multiple OS and Python versions, uses uv for dependency management, and
+  publishes to PyPI on releases. Can you help me set this up securely?"
+- "This workflow is taking too long to run. Can you help me optimize it with
+  better caching and parallel job execution?"
+- "I want to add security scanning and vulnerability checks to my Python CI
+  pipeline. What actions would you recommend and how should I configure them?"
+
+**Include relevant context:**
+
+- Python versions you need to support
+- Testing framework and tools (pytest, coverage, etc.)
+- Dependency management tool (uv, pip-tools, poetry)
+- Deployment targets (PyPI, Docker, cloud platforms)
+- Security requirements and compliance needs
+- Performance constraints and build time requirements

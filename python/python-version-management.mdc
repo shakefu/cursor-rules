@@ -1,44 +1,360 @@
----
-description: Version checking and dependency management best practices
-globs:
-alwaysApply: false
----
 
-# Version Management Best Practices
+# Python Version Management Guidelines
 
-## General Principles
+**Rationale:** These guidelines promote secure, up-to-date Python projects
+by establishing clear processes for managing Python versions, dependencies,
+and development tool versions using modern Python tooling.
 
-- Always check for the latest versions of dependencies and GitHub Actions
-- Never guess or use potentially outdated versions
-- Always verify versions from official repositories
-- Keep GitHub Actions and their versions up to date
+## Python Version Management
 
-## Version Checking Commands
+**Guideline:** Use consistent Python version management strategies across
+development, testing, and production environments.
 
-Use the following commands to find latest versions:
+### Python Version Examples
 
-```bash
-# For GitHub-hosted projects
-gh release list --repo <owner>/<repo> --limit 1
+**Specifying Python versions in pyproject.toml:**
 
-# For GitHub Actions specifically
-gh api repos/<owner>/<repo>/releases/latest
+```toml
+[project]
+name = "myproject"
+requires-python = ">=3.9"
+dependencies = [
+    "requests>=2.28.0",
+    "pydantic>=2.0.0,<3.0.0",
+]
 
-# For GitHub Actions versions
-gh api repos/<owner>/<repo>/tags
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
 ```
 
-## Dependency Management
+**Using pyenv for local Python version management:**
 
-- Use uv to manage Python dependencies
-- Keep `pyproject.toml` up to date with version constraints
-- Regularly update dependencies to latest compatible versions
-- Use dependency scanning tools when available
-- Document version requirements clearly
+```bash
+# Install and set specific Python version
+pyenv install 3.11.6
+pyenv local 3.11.6
 
-## Security Considerations
+# Verify version
+python --version  # Should show Python 3.11.6
 
-- Use commit hashes for GitHub Actions instead of version tags
-- Include version tags as comments for reference
-- Regularly audit dependencies for security vulnerabilities
-- Keep all tooling and dependencies updated
+# Create project with specific Python version
+uv init --python 3.11
+uv add requests pydantic
+```
+
+**GitHub Actions matrix for multiple Python versions:**
+
+```yaml
+strategy:
+  matrix:
+    python-version: ['3.9', '3.10', '3.11', '3.12']
+    include:
+      # Test against latest development version
+      - python-version: '3.13-dev'
+        experimental: true
+```
+
+## Dependency Version Management
+
+**Guideline:** Use uv's dependency management features to maintain secure,
+compatible dependency sets while allowing for controlled updates.
+
+### Dependency Management Examples
+
+**Adding dependencies with version constraints:**
+
+```bash
+# Add production dependency with version constraint
+uv add "requests>=2.28.0,<3.0.0"
+
+# Add development dependency
+uv add --group dev "pytest>=7.0.0"
+
+# Add optional dependency for specific feature
+uv add --group database "sqlalchemy>=2.0.0" "psycopg2-binary>=2.9.0"
+
+# Pin exact versions for security or stability
+uv add "pillow==10.0.1"  # Exact version
+```
+
+**Dependency update workflow:**
+
+```bash
+# Check for outdated dependencies
+uv tree --outdated
+
+# Update specific dependency
+uv update requests
+
+# Update all dependencies (respecting constraints)
+uv update
+
+# Update to latest versions, ignoring some constraints (use carefully)
+uv update --upgrade-package requests
+
+# After updating, test thoroughly
+uv run pytest
+```
+
+**Lock file management:**
+
+```bash
+# Generate/update lock file
+uv lock
+
+# Install exact versions from lock file (for production)
+uv sync --frozen
+
+# Install development dependencies in CI
+uv sync --group dev
+
+# Check for security vulnerabilities (if using safety)
+uv run safety check
+```
+
+## Version Checking and Discovery
+
+**Guideline:** Use reliable methods to discover the latest versions of
+dependencies and development tools before updating.
+
+### Version Discovery Examples
+
+**Finding latest package versions:**
+
+```bash
+# Check available versions of a Python package
+uv add --dry-run "requests>=0"  # Shows available versions
+
+# Using pip to check versions (if needed)
+pip index versions requests
+
+# Check what's currently installed
+uv tree
+uv pip list
+
+# Using GitHub CLI for project releases
+gh release list --repo psf/requests --limit 5
+```
+
+**Dependency audit and security checking:**
+
+```bash
+# Basic dependency tree
+uv tree
+
+# Check for known security vulnerabilities
+uv run pip-audit
+
+# Export requirements for external tools
+uv export --format requirements-txt --output-file requirements.txt
+
+# Review dependency licenses
+uv run pip-licenses
+```
+
+**Version pinning strategies:**
+
+```toml
+# pyproject.toml - Different pinning strategies
+
+[project]
+dependencies = [
+    # Flexible - allows minor updates
+    "requests>=2.28.0,<3.0.0",
+
+    # Conservative - allows patch updates only
+    "django>=4.2.0,<4.3.0",
+
+    # Exact - for security or compatibility
+    "pillow==10.0.1",
+
+    # Latest stable - use with caution
+    "black>=23.0.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    # More flexible for dev tools
+    "pytest>=7.0.0",
+    "ruff>=0.1.0",
+
+    # Pin tools that might break workflows
+    "pre-commit==3.5.0",
+]
+```
+
+## GitHub Actions and Tool Versioning
+
+**Guideline:** Maintain up-to-date GitHub Actions and development tools
+while ensuring reproducible builds and security.
+
+### GitHub Actions Version Management
+
+**Action version management workflow:**
+
+```bash
+# Find latest versions of GitHub Actions
+gh api repos/actions/checkout/releases/latest
+gh api repos/actions/setup-python/releases/latest
+gh api repos/astral-sh/setup-uv/releases/latest
+
+# Get commit hash for specific version
+gh api repos/actions/checkout/git/ref/tags/v4 --jq '.object.sha'
+```
+
+**Dependabot configuration for automatic updates:**
+
+```yaml
+# .github/dependabot.yml
+version: 2
+updates:
+  # Update GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  # Update Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+```
+
+**Renovate configuration alternative:**
+
+```json
+{
+  "extends": [
+    "config:base",
+    "schedule:weekly"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "commitMessagePrefix": "chore(actions): "
+    },
+    {
+      "matchManagers": ["pip_requirements"],
+      "commitMessagePrefix": "chore(deps): "
+    }
+  ]
+}
+```
+
+## Security and Maintenance
+
+**Guideline:** Implement regular security audits and maintenance practices
+to keep Python projects secure and up-to-date.
+
+### Security Maintenance Examples
+
+**Regular security audit workflow:**
+
+```bash
+# Weekly security check script
+#!/bin/bash
+set -e
+
+echo "Checking for outdated dependencies..."
+uv update --dry-run
+
+echo "Scanning for security vulnerabilities..."
+uv run pip-audit
+
+echo "Checking for dependency conflicts..."
+uv lock --check
+
+echo "Running tests with updated dependencies..."
+uv run pytest --maxfail=1
+
+echo "Security audit complete!"
+```
+
+**Pre-commit hook for dependency verification:**
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: local
+    hooks:
+      - id: dependency-audit
+        name: Dependency Security Audit
+        entry: uv run pip-audit
+        language: system
+        pass_filenames: false
+
+      - id: uv-lock-check
+        name: Check uv.lock is up to date
+        entry: uv lock --check
+        language: system
+        pass_filenames: false
+```
+
+**CI security scanning:**
+
+```yaml
+# .github/workflows/security.yml
+name: Security Scan
+on: [push, pull_request, schedule]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Run security audit
+        run: uv run pip-audit
+
+      - name: Check for dependency conflicts
+        run: uv lock --check
+```
+
+## AI Assistant Collaboration
+
+**Guideline:** When working with an AI assistant on version management,
+provide context about your project's constraints, update policies, and
+security requirements.
+
+### Version Management Collaboration Examples
+
+**Effective collaboration patterns:**
+
+- "I need to update the dependencies in this Python project, but we have
+  constraints on Django versions due to legacy code. Can you help me create
+  an update strategy that respects these constraints while improving security?"
+- "This project's CI is failing after a dependency update. Can you help me
+  identify which update caused the issue and suggest a resolution strategy?"
+- "I want to implement automated dependency updates with proper testing.
+  Can you help me set up Dependabot or Renovate with appropriate safeguards?"
+
+**Include relevant context:**
+
+- Python version constraints and target environments
+- Critical dependencies with specific version requirements
+- Security compliance requirements or restrictions
+- CI/CD pipeline configuration and testing strategies
+- Team policies for dependency updates and version pinning
+- Legacy code constraints or compatibility requirements
